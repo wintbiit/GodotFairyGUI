@@ -146,13 +146,16 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           set -x
-          GODOT_URL="https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux_headless.64"
-          curl -fSL -o godot_binary "$GODOT_URL" || {
+          GODOT_URL="https://github.com/godotengine/godot-builds/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux_headless.64.zip"
+          curl -fSL -o godot.zip "$GODOT_URL" || {
             echo "WARNING: Godot download failed, skipping smoke test"
             exit 0
           }
-          chmod +x godot_binary
-          ./godot_binary --headless --path example res://scenes/smoke_test.tscn --quit 2>&1 | tee smoke_log.txt
+          unzip -o godot.zip
+          GODOT=$(ls Godot_*linux*headless* 2>/dev/null | head -1)
+          [ -z "$GODOT" ] && { echo "WARNING: Godot binary not found in zip"; exit 0; }
+          chmod +x "$GODOT"
+          "$GODOT" --headless --path example res://scenes/smoke_test.tscn --quit 2>&1 | tee smoke_log.txt
           grep -q "GodotFairyGUI smoke: ok" smoke_log.txt || {
             echo "WARNING: Smoke test failed (non-critical)"
             tail -20 smoke_log.txt
