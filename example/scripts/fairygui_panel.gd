@@ -67,10 +67,10 @@ func _refresh() -> void:
 
 	add_child(comp)
 	_component = comp
+	# Never persist dynamically-created GComponent in the scene file.
+	# It lives only at runtime, owned by FairyGUIPanel.
 	if Engine.is_editor_hint():
-		var root := get_tree().edited_scene_root
-		if root:
-			comp.owner = root
+		comp.owner = null
 	_loaded = true
 
 func _cleanup() -> void:
