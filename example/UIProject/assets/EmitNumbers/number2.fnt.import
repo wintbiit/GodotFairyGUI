@@ -1,0 +1,17 @@
+[remap]
+
+importer="font_data_bmfont"
+type="FontFile"
+uid="uid://ct5p3wy1g3rvn"
+path="res://.godot/imported/number2.fnt-3aae70e97a2ac2b23f42e6db857ddfb5.fontdata"
+
+[deps]
+
+source_file="res://UIProject/assets/EmitNumbers/number2.fnt"
+dest_files=["res://.godot/imported/number2.fnt-3aae70e97a2ac2b23f42e6db857ddfb5.fontdata"]
+
+[params]
+
+fallbacks=[]
+compress=true
+scaling_mode=2

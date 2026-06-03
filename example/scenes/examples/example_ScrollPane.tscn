@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/examples/example_ScrollPane.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/fairygui_panel.gd" id="1"]
 
 [node name="ScrollPane" type="Control"]
 layout_mode = 3
@@ -10,3 +10,5 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1")
+package_name = "ScrollPane"
+component_name = "Main"

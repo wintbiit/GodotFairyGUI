@@ -28,9 +28,11 @@ func _run_tests() -> void:
 			printerr("SMOKE: FAILED to load " + path)
 			continue
 
-		var n := s.instantiate()
+		var n: Node = s.instantiate()
 		add_child(n)
-		var ok: bool = n._example_load()
+		var ok: bool = false
+		if n.has_method("run_headless_test"):
+			ok = n.run_headless_test()
 		print("[smoke] " + pkg + ": " + ("ok" if ok else "FAILED"))
 		if ok: _ok += 1
 		n.free()
