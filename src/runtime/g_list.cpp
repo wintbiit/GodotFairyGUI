@@ -64,55 +64,7 @@ void GList::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::INT, "num_items"), "set_num_items", "get_num_items");
 }
 
-void GList::_gui_input(const Ref<InputEvent> &p_event) {
-    Ref<InputEventMouseButton> mouse_button = p_event;
-    if (mouse_button.is_valid()) {
-        if (mouse_button->is_pressed()) {
-            if (handle_mouse_wheel(static_cast<int32_t>(mouse_button->get_button_index()))) {
-                accept_event();
-                return;
-            }
-            if (scroll_touch_effect && mouse_button->get_button_index() == MouseButton::MOUSE_BUTTON_LEFT) {
-                scroll_dragging = true;
-                scroll_drag_last_pos = mouse_button->get_global_position();
-                scroll_velocity = Vector2();
-                set_process(true);
-            }
-        } else {
-            if (scroll_dragging && mouse_button->get_button_index() == MouseButton::MOUSE_BUTTON_LEFT) {
-                scroll_dragging = false;
-            }
-        }
-        return;
-    }
 
-    Ref<InputEventMouseMotion> mouse_motion = p_event;
-    if (mouse_motion.is_valid() && scroll_dragging) {
-        Vector2 current_pos = mouse_motion->get_global_position();
-        Vector2 delta = scroll_drag_last_pos - current_pos;
-        scroll_velocity = delta; // frame-based velocity
-        scroll_drag_last_pos = current_pos;
-
-        Vector2 new_pos = scroll_position + delta;
-        new_pos = clamp_scroll_position(new_pos);
-        if (scroll_position != new_pos) {
-            scroll_position = new_pos;
-            if (virtual_list) {
-                relayout_virtual_items();
-            } else {
-                relayout_items();
-            }
-            accept_event();
-        }
-        return;
-    }
-
-    GComponent::_gui_input(p_event);
-}
-
-void GList::_process(double p_delta) {
-    process_scroll_physics(p_delta);
-}
 
 void GList::setup_before_add(fgui::ByteBuffer &p_buffer, int64_t p_begin_pos) {
     GComponent::setup_before_add(p_buffer, p_begin_pos);
@@ -471,6 +423,7 @@ void GList::handle_item_click(GObject *p_item) {
 
 void GList::set_scroll_position(const Vector2 &p_position) {
     scroll_position = clamp_scroll_position(p_position);
+    sync_scroll_bars();
     if (virtual_list) {
         relayout_virtual_items();
     } else {
@@ -533,31 +486,7 @@ float GList::get_scroll_step() const {
     return scroll_step;
 }
 
-bool GList::handle_mouse_wheel(int32_t p_button_index) {
-    if (!mouse_wheel_enabled) {
-        return false;
-    }
 
-    const MouseButton button = static_cast<MouseButton>(p_button_index);
-    const bool prefer_horizontal = scroll_type == fgui::ScrollType::Horizontal || (scroll_type == fgui::ScrollType::Both && content_size.x > get_size().x && content_size.y <= get_size().y);
-    if (button == MouseButton::MOUSE_BUTTON_WHEEL_UP) {
-        set_scroll_position(scroll_position - (prefer_horizontal ? Vector2(scroll_step, 0) : Vector2(0, scroll_step)));
-        return true;
-    }
-    if (button == MouseButton::MOUSE_BUTTON_WHEEL_DOWN) {
-        set_scroll_position(scroll_position + (prefer_horizontal ? Vector2(scroll_step, 0) : Vector2(0, scroll_step)));
-        return true;
-    }
-    if (button == MouseButton::MOUSE_BUTTON_WHEEL_LEFT) {
-        set_scroll_position(scroll_position - Vector2(scroll_step, 0));
-        return true;
-    }
-    if (button == MouseButton::MOUSE_BUTTON_WHEEL_RIGHT) {
-        set_scroll_position(scroll_position + Vector2(scroll_step, 0));
-        return true;
-    }
-    return false;
-}
 
 void GList::read_declared_items(fgui::ByteBuffer &p_buffer) {
     for (int32_t i = 0; i < declared_item_count; i++) {
@@ -577,30 +506,7 @@ void GList::read_declared_items(fgui::ByteBuffer &p_buffer) {
     }
 }
 
-void GList::setup_scroll(fgui::ByteBuffer &p_buffer) {
-    scroll_type = static_cast<fgui::ScrollType>(p_buffer.read_byte());
-    scroll_bar_display = static_cast<fgui::ScrollBarDisplayType>(p_buffer.read_byte());
-    const int32_t flags = p_buffer.read_int();
 
-    if (p_buffer.read_bool()) {
-        p_buffer.skip(16); // scroll bar margin top/bottom/left/right
-    }
-
-    vt_scroll_bar_res = p_buffer.read_s();
-    hz_scroll_bar_res = p_buffer.read_s();
-    p_buffer.read_s(); // header resource
-    p_buffer.read_s(); // footer resource
-
-    snap_to_item = (flags & 2) != 0;
-    page_mode = (flags & 8) != 0;
-    scroll_touch_effect = !((flags & 32) != 0);
-    if ((flags & 16) != 0) scroll_touch_effect = true;
-    scroll_bounce_effect = !((flags & 128) != 0);
-    if ((flags & 64) != 0) scroll_bounce_effect = true;
-    scroll_inertia_disabled = (flags & 256) != 0;
-    mouse_wheel_enabled = scroll_bar_display != fgui::ScrollBarDisplayType::Hidden;
-    set_clip_contents(true);
-}
 
 void GList::setup_item(fgui::ByteBuffer &p_buffer, GObject *p_item) {
     const String title = p_buffer.read_s();
@@ -856,13 +762,6 @@ int32_t GList::get_physical_index_for_virtual_index(int32_t p_index) const {
     return -1;
 }
 
-Vector2 GList::clamp_scroll_position(const Vector2 &p_position) const {
-    const Vector2 viewport = get_size();
-    const real_t max_x = MAX(static_cast<real_t>(0.0), content_size.x - viewport.x);
-    const real_t max_y = MAX(static_cast<real_t>(0.0), content_size.y - viewport.y);
-    return Vector2(CLAMP(p_position.x, static_cast<real_t>(0.0), max_x), CLAMP(p_position.y, static_cast<real_t>(0.0), max_y));
-}
-
 void GList::bind_item(GObject *p_item) {
     if (p_item == nullptr) return;
     Callable bound = Callable(this, "handle_item_click").bind(p_item);
@@ -889,38 +788,4 @@ GButton *GList::get_mutable_button_item(int32_t p_index) {
         return nullptr;
     }
     return Object::cast_to<GButton>(get_child(p_index));
-}
-
-void GList::process_scroll_physics(double p_delta) {
-    if (scroll_dragging) return;
-
-    bool has_motion = false;
-    Vector2 new_pos = scroll_position;
-
-    if (!scroll_inertia_disabled && (Math::abs(scroll_velocity.x) > 0.1 || Math::abs(scroll_velocity.y) > 0.1)) {
-        has_motion = true;
-        real_t decay = Math::pow(static_cast<real_t>(scroll_deceleration_rate), static_cast<real_t>(p_delta * 60.0));
-        scroll_velocity = scroll_velocity * decay;
-        new_pos.x += scroll_velocity.x * p_delta;
-        new_pos.y += scroll_velocity.y * p_delta;
-    }
-
-    new_pos = clamp_scroll_position(new_pos);
-    if (scroll_bounce_effect && !scroll_dragging) {
-        // Bounce if velocity near zero but position differs due to clamping
-        if (scroll_velocity.length() < 0.1 && new_pos != scroll_position) {
-            scroll_velocity = Vector2();
-        }
-    }
-
-    if (new_pos != scroll_position || has_motion) {
-        scroll_position = new_pos;
-        if (virtual_list) {
-            relayout_virtual_items();
-        } else {
-            relayout_items();
-        }
-    } else {
-        set_process(false);
-    }
 }

@@ -6,6 +6,7 @@
 namespace godot {
 
 class GTween;
+class AudioStreamPlayer;
 
 class GComponent : public GObject {
     GDCLASS(GComponent, GObject)
@@ -28,6 +29,9 @@ public:
     int32_t get_controller_page_count(int32_t p_controller_index) const;
     String get_controller_selected_page_id(int32_t p_controller_index) const;
     bool set_controller_selected_index(int32_t p_controller_index, int32_t p_page_index);
+    bool set_controller_selected_page_id(int32_t p_controller_index, const String &p_page_id);
+    bool go_back_controller(int32_t p_controller_index);
+    int32_t get_controller_previous_index(int32_t p_controller_index) const;
     int32_t count_hidden_descendants() const;
     int32_t count_display_gear_descendants() const;
     int32_t count_common_gear_descendants() const;
@@ -137,6 +141,7 @@ private:
     Vector<ControllerData> controllers;
     Vector<TransitionData> transitions;
     GTween *transition_tween = nullptr;
+    AudioStreamPlayer *transition_sound_player = nullptr;
     Vector2 previous_size;
     bool constructing = false;
     bool construct_requested = false;
@@ -144,6 +149,7 @@ private:
 
 protected:
     virtual void construct_extension_from_package(const fgui::PackageItem &p_item);
+    virtual void on_parent_controller_changed(int32_t p_parent_controller_index, const String &p_selected_page_id);
 
 private:
     void setup_controllers(fgui::ByteBuffer &p_buffer);

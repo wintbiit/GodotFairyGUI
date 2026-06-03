@@ -1,0 +1,13 @@
+Checks: >
+  bugprone-*,
+  -bugprone-easily-swappable-parameters,
+  performance-*,
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-emplace,
+  modernize-make-unique,
+  readability-*,
+  -readability-identifier-length,
+  -readability-magic-numbers,
+  google-*,
+  -google-readability-todo

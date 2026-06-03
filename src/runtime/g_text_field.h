@@ -57,7 +57,14 @@ protected:
     void _handle_rich_text_meta_clicked(const Variant &p_meta);
 
 private:
+    struct ApplyRichTextFont {
+        bool applied = false;
+        int32_t size = 0;
+    };
+
     bool draw_bitmap_font();
+    bool draw_true_type_font();
+    ApplyRichTextFont apply_rich_text_font_override(RichTextLabel *p_label);
     void update_rich_text_label();
     RichTextLabel *ensure_rich_text_label();
     void clear_rich_text_label();

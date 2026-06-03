@@ -4,6 +4,7 @@
 
 #include <godot_cpp/classes/object.hpp>
 #include <godot_cpp/classes/audio_stream.hpp>
+#include <godot_cpp/classes/font.hpp>
 #include <godot_cpp/classes/texture2d.hpp>
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/variant/callable.hpp>
@@ -86,6 +87,11 @@ public:
     static GObject *create_object_from_url(const String &p_url);
     static bool find_bitmap_font(const String &p_font_name, fgui::BitmapFontData &r_font_data, String &r_package_id);
     static Ref<Texture2D> get_bitmap_font_glyph_texture(const String &p_package_id_or_name, const fgui::BitmapFontGlyph &p_glyph);
+
+    static void register_font_resource(const String &p_font_name, const String &p_resource_path);
+    static bool unregister_font_resource(const String &p_font_name);
+    static Ref<Font> get_true_type_font(const String &p_font_name, int32_t p_font_size);
+    static String resolve_asset_path_for_image_ubb(const String &p_image_url);
 
 private:
     static bool load_package(fgui::ByteBuffer &p_buffer, const String &p_asset_name_prefix, fgui::PackageData &r_package);

@@ -25,6 +25,7 @@ public:
     int32_t to_property(Object *p_target, const StringName &p_property, const Variant &p_end, double p_duration);
     int32_t to_value(double p_start, double p_end, double p_duration, const Callable &p_update);
     int32_t to_shake(Object *p_target, double p_amplitude, double p_duration);
+    int32_t to_pivot(Object *p_target, const Vector2 &p_end, double p_duration);
     int32_t delayed_call(double p_delay, const Callable &p_callback);
 
     void set_tween_delay(int32_t p_id, double p_delay);
@@ -87,6 +88,7 @@ private:
         TWEEN_DELAY = 3,
         TWEEN_PROPERTY = 4,
         TWEEN_SHAKE = 5,
+        TWEEN_PIVOT = 6,
     };
 
     enum EaseType {

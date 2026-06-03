@@ -166,7 +166,10 @@ String convert_ubb_to_bbcode(const String &p_text, int32_t &r_image_count, int32
                 const String src = strip_edges_ascii(p_text.substr(close + 1, end_open - close - 1));
                 if (!src.is_empty()) {
                     if (src.begins_with("ui://")) {
-                        result += escape_bbcode_text(src);
+                        const String resolved = UIPackage::resolve_asset_path_for_image_ubb(src);
+                        if (!resolved.is_empty()) {
+                            result += "[img]" + resolved + "[/img]";
+                        }
                     } else {
                         result += "[img]" + src + "[/img]";
                     }
@@ -244,6 +247,10 @@ void GTextField::_draw() {
     }
 
     if (draw_bitmap_font()) {
+        return;
+    }
+
+    if (draw_true_type_font()) {
         return;
     }
 
@@ -468,6 +475,21 @@ bool GTextField::draw_bitmap_font() {
     return true;
 }
 
+bool GTextField::draw_true_type_font() {
+    if (font_name.is_empty() || display_text.is_empty()) {
+        return false;
+    }
+
+    Ref<Font> font = UIPackage::get_true_type_font(font_name, font_size);
+    if (font.is_null()) {
+        return false;
+    }
+
+    const int resolved_size = font_size > 0 ? font_size : 14;
+    font->draw_string(get_canvas_item(), Vector2(0, resolved_size), display_text, horizontal_alignment, get_size().x, resolved_size, text_color);
+    return true;
+}
+
 void GTextField::update_rich_text_label() {
     if (!rich_text_enabled) {
         return;
@@ -478,6 +500,9 @@ void GTextField::update_rich_text_label() {
     label->set_size(get_size());
     label->set_modulate(text_color);
     label->clear();
+
+    ApplyRichTextFont override = apply_rich_text_font_override(label);
+
     label->set_use_bbcode(true);
     label->parse_bbcode(rich_text_bbcode);
 }
@@ -500,6 +525,31 @@ RichTextLabel *GTextField::ensure_rich_text_label() {
         rich_text_label->connect(StringName("meta_clicked"), callback);
     }
     return rich_text_label;
+}
+
+GTextField::ApplyRichTextFont GTextField::apply_rich_text_font_override(RichTextLabel *p_label) {
+    if (font_name.is_empty()) {
+        return ApplyRichTextFont();
+    }
+
+    Ref<Font> font = UIPackage::get_true_type_font(font_name, font_size);
+    int32_t resolved = font_size;
+
+    if (font.is_null()) {
+        font = UIPackage::get_true_type_font(font_name, get_theme_default_font_size());
+        resolved = get_theme_default_font_size();
+    }
+
+    if (font.is_null()) {
+        return ApplyRichTextFont();
+    }
+
+    const ApplyRichTextFont result{true, resolved};
+    p_label->add_theme_font_override("normal_font", font);
+    if (resolved > 0) {
+        p_label->add_theme_font_size_override("normal_font_size", resolved);
+    }
+    return result;
 }
 
 void GTextField::clear_rich_text_label() {

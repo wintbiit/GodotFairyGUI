@@ -7,6 +7,7 @@
 namespace godot {
 
 class GButton;
+class GScrollBar;
 
 class GList : public GComponent {
     GDCLASS(GList, GComponent)
@@ -106,8 +107,11 @@ private:
     Vector2 scroll_page_size;
     String vt_scroll_bar_res;
     String hz_scroll_bar_res;
+    GScrollBar *vt_scroll_bar = nullptr;
+    GScrollBar *hz_scroll_bar = nullptr;
 
     void process_scroll_physics(double p_delta);
+    void sync_scroll_bars();
 
     void read_declared_items(fgui::ByteBuffer &p_buffer);
     void setup_scroll(fgui::ByteBuffer &p_buffer);
