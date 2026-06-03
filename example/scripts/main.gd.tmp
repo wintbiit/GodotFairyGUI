@@ -1,0 +1,16 @@
+extends Control
+
+func _copy_file_bytes(from_path: String, to_path: String) -> bool:
+	var bytes := FileAccess.get_file_as_bytes(from_path)
+	if bytes.is_empty():
+		return false
+	var file := FileAccess.open(to_path, FileAccess.WRITE)
+	if file == null:
+		return false
+	file.store_buffer(bytes)
+	file.close()
+	return true
+
+	
+	var checkpoint:=""
+	var ok := true

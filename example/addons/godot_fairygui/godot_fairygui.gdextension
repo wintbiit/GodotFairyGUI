@@ -1,0 +1,12 @@
+[configuration]
+entry_symbol = "godot_fairygui_library_init"
+compatibility_minimum = "4.5"
+reloadable = true
+
+[libraries]
+windows.debug.x86_64 = "res://addons/godot_fairygui/bin/godot_fairygui.windows.template_debug.x86_64.dll"
+windows.release.x86_64 = "res://addons/godot_fairygui/bin/godot_fairygui.windows.template_release.x86_64.dll"
+linux.debug.x86_64 = "res://addons/godot_fairygui/bin/godot_fairygui.linux.template_debug.x86_64.so"
+linux.release.x86_64 = "res://addons/godot_fairygui/bin/godot_fairygui.linux.template_release.x86_64.so"
+macos.debug = "res://addons/godot_fairygui/bin/godot_fairygui.macos.template_debug.framework"
+macos.release = "res://addons/godot_fairygui/bin/godot_fairygui.macos.template_release.framework"
