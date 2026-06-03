@@ -1,0 +1,173 @@
+name: Build GDExtension
+
+on:
+  push:
+    branches: [main, master, develop]
+    tags: ["v*"]
+  pull_request:
+    branches: [main, master]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ═══════════════════════════════════════════════
+  # Build per platform & config
+  # ═══════════════════════════════════════════════
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.config }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        config: [Debug, Release]
+
+    steps:
+      - name: Checkout with submodules
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      # ── Windows ────────────────────────────────
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -B build -S . -G "Visual Studio 17 2022" -A x64
+
+      - name: Build (Windows)
+        if: runner.os == 'Windows'
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui
+
+      - name: Copy + rename (Windows)
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          BIN="example/addons/godot_fairygui/bin"
+          TEMPLATE="${{ matrix.config == 'Debug' && 'template_debug' || 'template_release' }}"
+          cp "$BIN/godot_fairygui.dll" \
+             "$BIN/godot_fairygui.windows.$TEMPLATE.x86_64.dll"
+
+      # ── Linux ──────────────────────────────────
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq \
+            cmake build-essential pkg-config \
+            libx11-dev libxcursor-dev libxinerama-dev \
+            libgl1-mesa-dev libxrandr-dev libxi-dev \
+            libasound2-dev libpulse-dev
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: cmake -B build -S . -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui
+
+      - name: Copy + rename (Linux)
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          BIN="example/addons/godot_fairygui/bin"
+          TEMPLATE="${{ matrix.config == 'Debug' && 'template_debug' || 'template_release' }}"
+          cp "$BIN/libgodot_fairygui.so" \
+             "$BIN/libgodot_fairygui.linux.$TEMPLATE.x86_64.so"
+
+      # ── macOS ──────────────────────────────────
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake pkg-config
+
+      - name: Configure (macOS)
+        if: runner.os == 'macOS'
+        run: cmake -B build -S . -G "Xcode"
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui
+
+      - name: Copy + rename (macOS)
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          BIN="example/addons/godot_fairygui/bin"
+          TEMPLATE="${{ matrix.config == 'Debug' && 'template_debug' || 'template_release' }}"
+          mkdir -p "$BIN/libgodot_fairygui.macos.$TEMPLATE.framework"
+          cp "$BIN/libgodot_fairygui.dylib" \
+             "$BIN/libgodot_fairygui.macos.$TEMPLATE.framework/libgodot_fairygui.dylib"
+
+      # ── Verify with Godot headless (Linux only) ──
+      - name: Smoke test (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          curl -L -o godot.zip \
+            "https://github.com/godotengine/godot/releases/download/4.5.1-stable/Godot_v4.5.1-stable_linux_headless.64.zip"
+          unzip -o godot.zip
+          GODOT=$(ls Godot_v4.5.1-stable_linux_headless.64* | head -1)
+          chmod +x "$GODOT"
+          "$GODOT" --headless --path example --quit 2>&1 | tee smoke_log.txt
+          grep -q "GodotFairyGUI smoke: ok" smoke_log.txt
+          echo "Smoke test passed."
+
+      # ── Upload per-platform artifact ─────────
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ runner.os }}_${{ matrix.config }}
+          path: |
+            example/addons/godot_fairygui/bin/*.dll
+            example/addons/godot_fairygui/bin/*.so
+            example/addons/godot_fairygui/bin/*.framework
+          if-no-files-found: error
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════
+  # Combine all platform binaries + addon files
+  # ═══════════════════════════════════════════════
+  package:
+    name: Package addon release
+    needs: [build]
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+
+    steps:
+      - name: Checkout addon skeleton
+        uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            example/addons/godot_fairygui
+          path: addon
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: _artifacts
+
+      - name: Assemble bin directory
+        run: |
+          mkdir -p addon/example/addons/godot_fairygui/bin
+          for d in _artifacts/*/; do
+            cp "$d"/*.dll addon/example/addons/godot_fairygui/bin/ 2>/dev/null || true
+            cp "$d"/*.so  addon/example/addons/godot_fairygui/bin/ 2>/dev/null || true
+            cp -r "$d"/*.framework addon/example/addons/godot_fairygui/bin/ 2>/dev/null || true
+          done
+          ls -la addon/example/addons/godot_fairygui/bin/
+
+      - name: Package archives
+        run: |
+          cd addon/example/addons
+          tar czf "${{ github.workspace }}/godot_fairygui_addon.tar.gz" godot_fairygui/
+          zip -r "${{ github.workspace }}/godot_fairygui_addon.zip" godot_fairygui/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            godot_fairygui_addon.tar.gz
+            godot_fairygui_addon.zip
+          generate_release_notes: true

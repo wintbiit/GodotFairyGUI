@@ -1,0 +1,5 @@
+build/
+.ref/
+
+example/.godot/
+example/addons/godot_fairygui/bin/
