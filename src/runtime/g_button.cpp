@@ -28,6 +28,8 @@ void GButton::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "title"), "set_title", "get_title");
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "sound_url"), "set_sound_url", "get_sound_url");
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "sound_volume_scale"), "set_sound_volume_scale", "get_sound_volume_scale");
+
+    ADD_SIGNAL(MethodInfo("fgui_selected_changed", PropertyInfo(Variant::BOOL, "selected")));
 }
 
 void GButton::_gui_input(const Ref<InputEvent> &p_event) {
@@ -72,7 +74,9 @@ void GButton::setup_after_add(fgui::ByteBuffer &p_buffer, int64_t p_begin_pos) {
 }
 
 void GButton::set_selected(bool p_selected) {
+    if (selected == p_selected) return;
     selected = p_selected;
+    emit_signal("fgui_selected_changed", selected);
 }
 
 bool GButton::is_selected() const {

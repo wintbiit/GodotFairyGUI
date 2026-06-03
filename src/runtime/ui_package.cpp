@@ -27,6 +27,11 @@
 namespace {
 constexpr uint32_t FGUI_PACKAGE_MAGIC = 0x46475549;
 
+// All public static methods on UIPackage are designed for main-thread use.
+// Godot's scene tree / ClassDB / ObjectDB are not thread-safe — do NOT
+// call UIPackage methods from background threads.  For async asset loading,
+// dispatch back to the main thread via call_deferred().
+
 godot::HashMap<godot::String, godot::fgui::PackageData> &get_packages_by_id() {
     static godot::HashMap<godot::String, godot::fgui::PackageData> packages;
     return packages;
@@ -656,6 +661,7 @@ bool UIPackage::remove_package(const String &p_package_id_or_name) {
 
     const String package_name = packages_by_id[package_id].name;
     const String loader_prefix = asset_prefix_to_package_prefix(packages_by_id[package_id].asset_name_prefix);
+
     packages_by_id.erase(package_id);
     if (!package_name.is_empty()) {
         package_id_by_name.erase(package_name);
@@ -664,6 +670,9 @@ bool UIPackage::remove_package(const String &p_package_id_or_name) {
     if (get_last_package_id_storage() == package_id) {
         get_last_package_id_storage() = String();
     }
+    // Texture/audio caches are intentionally NOT cleared here:
+    // individual cache entries may be shared across packages via the same asset path.
+    // Use clear_texture_cache() / clear_audio_cache() to free resources explicitly.
     return true;
 }
 

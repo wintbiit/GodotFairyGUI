@@ -55,12 +55,13 @@ Ref<Texture2D> GImage::get_texture() const {
 void GImage::set_package_image(const String &p_package_id_or_name, const String &p_item_id_or_name) {
     package_name = p_package_id_or_name;
     item_name = p_item_id_or_name;
-    set_texture(UIPackage::get_image_texture(package_name, item_name));
+    texture = UIPackage::get_image_texture(package_name, item_name);
     if (UIPackage::has_image_scale9_grid(package_name, item_name)) {
-        set_scale9_grid(UIPackage::get_image_scale9_grid(package_name, item_name));
+        scale9_grid = UIPackage::get_image_scale9_grid(package_name, item_name);
     } else {
-        clear_scale9_grid();
+        scale9_grid = Rect2();
     }
+    queue_redraw();
 }
 
 void GImage::set_package_name(const String &p_package_id_or_name) {

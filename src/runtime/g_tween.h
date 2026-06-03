@@ -45,6 +45,7 @@ public:
     void clear();
     void advance(double p_delta);
 
+    // EaseType constants exposed to GDScript — must mirror EaseType enum below
     static int32_t EASE_LINEAR;
     static int32_t EASE_SINE_IN;
     static int32_t EASE_SINE_OUT;

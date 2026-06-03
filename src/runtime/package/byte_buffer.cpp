@@ -141,6 +141,11 @@ ByteBuffer ByteBuffer::read_buffer() {
 bool ByteBuffer::seek(int64_t p_index_table_pos, int32_t p_block_index) {
     const int64_t old_position = position;
     position = p_index_table_pos;
+
+    if (position + 1 > static_cast<int64_t>(data.size()) - offset) {
+        position = old_position;
+        return false;
+    }
     const int32_t segment_count = data[offset + position++];
 
     if (p_block_index >= segment_count) {
@@ -148,12 +153,25 @@ bool ByteBuffer::seek(int64_t p_index_table_pos, int32_t p_block_index) {
         return false;
     }
 
+    if (position + 1 > static_cast<int64_t>(data.size()) - offset) {
+        position = old_position;
+        return false;
+    }
     const bool use_short = data[offset + position++] == 1;
+
     int32_t new_position = 0;
     if (use_short) {
+        if (position + 2 * p_block_index > static_cast<int64_t>(data.size()) - offset) {
+            position = old_position;
+            return false;
+        }
         position += 2 * p_block_index;
-        new_position = read_short();
+        new_position = static_cast<int32_t>(read_short());
     } else {
+        if (position + 4 * p_block_index > static_cast<int64_t>(data.size()) - offset) {
+            position = old_position;
+            return false;
+        }
         position += 4 * p_block_index;
         new_position = read_int();
     }

@@ -54,13 +54,13 @@ protected:
     RichTextLabel *rich_text_label = nullptr;
 
     void refresh_display_text();
+    void _handle_rich_text_meta_clicked(const Variant &p_meta);
 
 private:
     bool draw_bitmap_font();
     void update_rich_text_label();
     RichTextLabel *ensure_rich_text_label();
     void clear_rich_text_label();
-    void _handle_rich_text_meta_clicked(const Variant &p_meta);
 };
 
 } // namespace godot

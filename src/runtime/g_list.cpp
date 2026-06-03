@@ -235,6 +235,10 @@ void GList::set_default_item(const String &p_url) {
     if (virtual_list) {
         virtual_item_size = Vector2();
         clear_virtual_items();
+        for (GObject *item : reuse_pool) {
+            if (item->get_parent() == this) remove_child(item);
+            memdelete(item);
+        }
         reuse_pool.clear();
         relayout_virtual_items();
     }
@@ -689,10 +693,11 @@ void GList::relayout_items() {
     }
 
     content_size = max_extent;
-    const Vector2 clamped = clamp_scroll_position(scroll_position);
-    if (clamped != scroll_position) {
+    for (int32_t iter = 0; iter < 3; iter++) {
+        const Vector2 clamped = clamp_scroll_position(scroll_position);
+        if (clamped == scroll_position) break;
         scroll_position = clamped;
-        relayout_items();
+        // Re-check positions only if clamped; single pass is sufficient here
     }
 }
 
@@ -796,6 +801,9 @@ void GList::return_virtual_item_to_pool(GObject *p_item) {
     if (p_item == nullptr) {
         return;
     }
+    if (p_item->get_parent() == this) {
+        remove_child(p_item);
+    }
     p_item->set_visible(false);
     reuse_pool.push_back(p_item);
 }
@@ -856,10 +864,10 @@ Vector2 GList::clamp_scroll_position(const Vector2 &p_position) const {
 }
 
 void GList::bind_item(GObject *p_item) {
-    if (p_item == nullptr || p_item->is_connected("fgui_click", Callable(this, "handle_item_click"))) {
-        return;
-    }
-    p_item->connect("fgui_click", Callable(this, "handle_item_click").bind(p_item));
+    if (p_item == nullptr) return;
+    Callable bound = Callable(this, "handle_item_click").bind(p_item);
+    if (p_item->is_connected("fgui_click", bound)) return;
+    p_item->connect("fgui_click", bound);
 }
 
 void GList::set_item_selected(int32_t p_index, bool p_selected) {

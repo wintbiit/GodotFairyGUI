@@ -165,14 +165,14 @@ bool GComponent::construct_from_package(const String &p_package_id, const fgui::
 
     if (!buffer.seek(0, 2)) {
         constructing = false;
-        return true;
+        return false;
     }
 
     setup_controllers(buffer);
 
     if (!buffer.seek(0, 2)) {
         constructing = false;
-        return true;
+        return false;
     }
 
     const int32_t child_count = buffer.read_short();
@@ -574,13 +574,14 @@ bool GComponent::play_transition_at(int32_t p_index) {
                     if (stream.is_valid()) {
                         AudioStreamPlayer *player = memnew(AudioStreamPlayer);
                         player->set_stream(stream);
+                        player->set_max_polyphony(4);
                         if (item.sound_volume > 0.0f && item.sound_volume != 1.0f) {
                             double db = 20.0 * Math::log(static_cast<double>(MAX(0.0f, item.sound_volume))) / Math::log(10.0);
                             player->set_volume_db(static_cast<float>(db));
                         }
                         add_child(player);
                         player->play();
-                        player->connect("finished", Callable(player, "queue_free"));
+                        player->connect("finished", Callable(player, "queue_free"), Object::CONNECT_ONE_SHOT);
                     }
                 }
                 tween_id = tween->delayed_call(0, Callable());

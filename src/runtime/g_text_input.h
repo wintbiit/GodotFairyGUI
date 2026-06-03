@@ -42,7 +42,7 @@ public:
     void set_selection(int32_t p_start, int32_t p_length);
     void replace_selection(const String &p_value);
     bool has_native_input();
-    int32_t get_native_input_owner_instance_id();
+    int64_t get_native_input_owner_instance_id();
 
 private:
     LineEdit *line_edit = nullptr;

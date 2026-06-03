@@ -213,7 +213,8 @@ void GMovieClip::advance(double p_time) {
     const int32_t begin_frame = current_frame;
     const bool begin_reversed = reversed;
     const double backup_time = p_time;
-    while (true) {
+    int32_t max_iterations = MAX(1, frames.size() * 5);
+    while (max_iterations-- > 0) {
         double frame_time = interval + frames[current_frame].add_delay;
         if (current_frame == 0 && repeated_count > 0) {
             frame_time += repeat_delay;

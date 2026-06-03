@@ -6,8 +6,6 @@
 #include <godot_cpp/core/object.hpp>
 #include <godot_cpp/variant/utility_functions.hpp>
 
-#include <cstdlib>
-
 using namespace godot;
 
 int32_t GTween::EASE_LINEAR = 0;
@@ -345,7 +343,10 @@ void GTween::advance(double p_delta) {
         return;
     }
 
-    for (int32_t i = 0; i < tweens.size(); i++) {
+    const int32_t initial_count = tweens.size();
+    Vector<int32_t> completed_ids;
+
+    for (int32_t i = 0; i < initial_count && i < tweens.size(); i++) {
         Tween &tween = tweens.write[i];
         if (tween.killed || tween._ended != 0) {
             continue;
@@ -360,9 +361,6 @@ void GTween::advance(double p_delta) {
 
         if (!tween.started) {
             tween.started = true;
-            if (tween.on_start.is_valid()) {
-                tween.on_start.call();
-            }
             if (tween.killed) continue;
         }
 
@@ -402,15 +400,30 @@ void GTween::advance(double p_delta) {
 
         apply_tween(tween, ratio);
 
+        if (tween._ended != 0 && !tween.killed) {
+            completed_ids.push_back(tween.id);
+        }
+    }
+
+    // Complete tweens after iteration — safe from re-entrancy
+    for (int32_t id : completed_ids) {
+        Tween *t = find_tween(id);
+        if (t != nullptr) {
+            complete_tween(*t);
+            t->killed = true;
+        }
+    }
+
+    // Fire deferred callbacks
+    for (int32_t i = 0; i < MIN(initial_count, tweens.size()); i++) {
+        Tween &tween = tweens.write[i];
+        if (tween.killed || tween._ended == 0) continue;
+        if (tween.on_start.is_valid() && !tween.started) {
+            tween.started = true;
+            tween.on_start.call();
+        }
         if (tween.on_update.is_valid()) {
             tween.on_update.call();
-        }
-
-        if (tween._ended != 0) {
-            if (!tween.killed) {
-                complete_tween(tween);
-                tween.killed = true;
-            }
         }
     }
 
@@ -482,16 +495,16 @@ void GTween::apply_tween(Tween &p_tween, double p_ratio) {
     }
 
     if (p_tween.kind == TWEEN_SHAKE) {
-        Object *target = ObjectDB::get_instance(p_tween.target_id);
-        Control *control = Object::cast_to<Control>(target);
+        Object *instance = ObjectDB::get_instance(p_tween.target_id);
+        Control *control = Object::cast_to<Control>(instance);
         if (control == nullptr) {
             p_tween.killed = true;
             return;
         }
         if (p_tween._ended == 0) {
             double decay = 1.0 - p_ratio;
-            double r_x = ((double)rand() / (double)RAND_MAX * 2.0 - 1.0) * p_tween.shake_amplitude * decay;
-            double r_y = ((double)rand() / (double)RAND_MAX * 2.0 - 1.0) * p_tween.shake_amplitude * decay;
+            double r_x = (UtilityFunctions::randf() * 2.0 - 1.0) * p_tween.shake_amplitude * decay;
+            double r_y = (UtilityFunctions::randf() * 2.0 - 1.0) * p_tween.shake_amplitude * decay;
             control->set_position(Vector2(p_tween.shake_start_original.x + r_x, p_tween.shake_start_original.y + r_y));
         } else {
             control->set_position(p_tween.shake_start_original);
@@ -499,14 +512,16 @@ void GTween::apply_tween(Tween &p_tween, double p_ratio) {
         return;
     }
 
-    if (p_tween.target_id != 0 && ObjectDB::get_instance(p_tween.target_id) == nullptr) {
+    // Cache ObjectDB::get_instance — called once per apply_tween
+    Object *instance = ObjectDB::get_instance(p_tween.target_id);
+    if (instance == nullptr) {
         p_tween.killed = true;
         return;
     }
 
     switch (p_tween.kind) {
         case TWEEN_POSITION: {
-            Control *control = Object::cast_to<Control>(ObjectDB::get_instance(p_tween.target_id));
+            Control *control = Object::cast_to<Control>(instance);
             if (control == nullptr) {
                 p_tween.killed = true;
                 return;
@@ -520,7 +535,7 @@ void GTween::apply_tween(Tween &p_tween, double p_ratio) {
             break;
         }
         case TWEEN_ALPHA: {
-            CanvasItem *canvas_item = Object::cast_to<CanvasItem>(ObjectDB::get_instance(p_tween.target_id));
+            CanvasItem *canvas_item = Object::cast_to<CanvasItem>(instance);
             if (canvas_item == nullptr) {
                 p_tween.killed = true;
                 return;
@@ -533,12 +548,6 @@ void GTween::apply_tween(Tween &p_tween, double p_ratio) {
             break;
         }
         case TWEEN_PROPERTY: {
-            Object *target = ObjectDB::get_instance(p_tween.target_id);
-            if (target == nullptr) {
-                p_tween.killed = true;
-                return;
-            }
-
             switch (p_tween.start_variant.get_type()) {
                 case Variant::FLOAT:
                 case Variant::INT: {
@@ -546,7 +555,7 @@ void GTween::apply_tween(Tween &p_tween, double p_ratio) {
                     const double end = static_cast<double>(p_tween.end_variant);
                     double val = start + (end - start) * p_ratio;
                     if (p_tween.snapping) val = Math::round(val);
-                    target->set(p_tween.property, val);
+                    instance->set(p_tween.property, val);
                     break;
                 }
                 case Variant::VECTOR2: {
@@ -557,17 +566,17 @@ void GTween::apply_tween(Tween &p_tween, double p_ratio) {
                         val.x = Math::round(val.x);
                         val.y = Math::round(val.y);
                     }
-                    target->set(p_tween.property, val);
+                    instance->set(p_tween.property, val);
                     break;
                 }
                 case Variant::COLOR: {
                     const Color start = p_tween.start_variant;
                     const Color end = p_tween.end_variant;
-                    target->set(p_tween.property, start.lerp(end, p_ratio));
+                    instance->set(p_tween.property, start.lerp(end, p_ratio));
                     break;
                 }
                 default:
-                    target->set(p_tween.property, p_tween.end_variant);
+                    instance->set(p_tween.property, p_tween.end_variant);
                     break;
             }
             break;

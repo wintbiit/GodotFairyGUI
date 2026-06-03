@@ -257,12 +257,12 @@ void GObject::setup_gear(fgui::ByteBuffer &p_buffer, uint8_t p_gear_index) {
         has_gear_xy = true;
         for (int32_t i = 0; i < page_count; i++) {
             const String page_id = p_buffer.read_s();
-            if (page_id.is_empty()) {
-                continue;
+            Vector2 pos = Vector2(p_buffer.read_int(), p_buffer.read_int());
+            if (!page_id.is_empty()) {
+                GearXYValue value;
+                value.position = pos;
+                gear_xy_values[page_id] = value;
             }
-            GearXYValue value;
-            value.position = Vector2(p_buffer.read_int(), p_buffer.read_int());
-            gear_xy_values[page_id] = value;
         }
         if (p_buffer.read_bool()) {
             gear_xy_default.position = Vector2(p_buffer.read_int(), p_buffer.read_int());
@@ -297,13 +297,14 @@ void GObject::setup_gear(fgui::ByteBuffer &p_buffer, uint8_t p_gear_index) {
         has_gear_size = true;
         for (int32_t i = 0; i < page_count; i++) {
             const String page_id = p_buffer.read_s();
-            if (page_id.is_empty()) {
-                continue;
+            Vector2 sz = Vector2(p_buffer.read_int(), p_buffer.read_int());
+            Vector2 sc = Vector2(p_buffer.read_float(), p_buffer.read_float());
+            if (!page_id.is_empty()) {
+                GearSizeValue value;
+                value.size = sz;
+                value.scale = sc;
+                gear_size_values[page_id] = value;
             }
-            GearSizeValue value;
-            value.size = Vector2(p_buffer.read_int(), p_buffer.read_int());
-            value.scale = Vector2(p_buffer.read_float(), p_buffer.read_float());
-            gear_size_values[page_id] = value;
         }
         if (p_buffer.read_bool()) {
             gear_size_default.size = Vector2(p_buffer.read_int(), p_buffer.read_int());
@@ -325,15 +326,17 @@ void GObject::setup_gear(fgui::ByteBuffer &p_buffer, uint8_t p_gear_index) {
         has_gear_look = true;
         for (int32_t i = 0; i < page_count; i++) {
             const String page_id = p_buffer.read_s();
-            if (page_id.is_empty()) {
-                continue;
-            }
-            GearLookValue value;
-            value.alpha = p_buffer.read_float();
-            value.rotation = p_buffer.read_float();
+            float alpha = p_buffer.read_float();
+            float rotation = p_buffer.read_float();
             p_buffer.read_bool(); // grayed
-            value.touchable = p_buffer.read_bool();
-            gear_look_values[page_id] = value;
+            bool touchable = p_buffer.read_bool();
+            if (!page_id.is_empty()) {
+                GearLookValue value;
+                value.alpha = alpha;
+                value.rotation = rotation;
+                value.touchable = touchable;
+                gear_look_values[page_id] = value;
+            }
         }
         if (p_buffer.read_bool()) {
             gear_look_default.alpha = p_buffer.read_float();
@@ -354,7 +357,8 @@ void GObject::setup_gear(fgui::ByteBuffer &p_buffer, uint8_t p_gear_index) {
 }
 
 void GObject::apply_gear_xy(const String &p_selected_page_id) {
-    GearXYValue value = gear_xy_values.has(p_selected_page_id) ? gear_xy_values[p_selected_page_id] : gear_xy_default;
+    const GearXYValue *found = gear_xy_values.getptr(p_selected_page_id);
+    GearXYValue value = found ? *found : gear_xy_default;
     if (gear_xy_positions_in_percent && get_parent() != nullptr) {
         const Control *parent_control = Object::cast_to<Control>(get_parent());
         if (parent_control != nullptr) {
@@ -366,14 +370,16 @@ void GObject::apply_gear_xy(const String &p_selected_page_id) {
 }
 
 void GObject::apply_gear_size(const String &p_selected_page_id) {
-    GearSizeValue value = gear_size_values.has(p_selected_page_id) ? gear_size_values[p_selected_page_id] : gear_size_default;
+    const GearSizeValue *found = gear_size_values.getptr(p_selected_page_id);
+    GearSizeValue value = found ? *found : gear_size_default;
     set_custom_minimum_size(value.size);
     set_size(value.size);
     set_scale(value.scale);
 }
 
 void GObject::apply_gear_look(const String &p_selected_page_id) {
-    GearLookValue value = gear_look_values.has(p_selected_page_id) ? gear_look_values[p_selected_page_id] : gear_look_default;
+    const GearLookValue *found = gear_look_values.getptr(p_selected_page_id);
+    GearLookValue value = found ? *found : gear_look_default;
     Color modulate = get_modulate();
     modulate.a = value.alpha;
     set_modulate(modulate);

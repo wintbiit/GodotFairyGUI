@@ -239,10 +239,10 @@ bool GTextInput::has_native_input() {
     return line_edit != nullptr || text_edit != nullptr;
 }
 
-int32_t GTextInput::get_native_input_owner_instance_id() {
+int64_t GTextInput::get_native_input_owner_instance_id() {
     update_native_input();
     Control *native = get_native_control();
-    return native != nullptr && native->get_owner() != nullptr ? static_cast<int32_t>(native->get_owner()->get_instance_id()) : 0;
+    return native != nullptr && native->get_owner() != nullptr ? native->get_owner()->get_instance_id() : 0;
 }
 
 void GTextInput::update_native_input() {
