@@ -1,4 +1,3 @@
-# Smoke test runner for all example scenes (headless CI)
 extends Control
 
 const EXAMPLES := [
@@ -12,30 +11,45 @@ const EXAMPLES := [
 
 var _ok: int = 0
 var _total: int = 0
+var _frame: int = 0
 
 func _ready() -> void:
-	if not DisplayServer.get_name() == "headless":
-		print("Run with --headless for automated smoke test.")
-		return
-	_run_tests()
-
-func _run_tests() -> void:
 	for pkg in EXAMPLES:
 		_total += 1
-		var path: String = "res://scenes/examples/example_" + pkg + ".tscn"
-		var s: PackedScene = load(path)
-		if s == null:
-			printerr("SMOKE: FAILED to load " + path)
+		var panel = ClassDB.instantiate("UIPanel")
+		panel.set("package_name", pkg)
+		panel.set("component_name", "Main")
+		panel.set("size", Vector2(1136, 640))
+		panel.set_meta("_pkg", pkg)
+		add_child(panel)
+
+func _process(_delta: float) -> void:
+	_frame += 1
+	if _frame < 2:
+		return
+	if _frame > 60:
+		print("GodotFairyGUI smoke: %d/%d (timeout)" % [_ok, _total])
+		get_tree().quit(1)
+		return
+
+	var to_remove: Array = []
+	for child in get_children():
+		var pkg: String = child.get_meta("_pkg", "")
+		if pkg == "":
 			continue
+		var loaded: bool = child.call("is_loaded")
+		if loaded:
+			print("[smoke] " + pkg + ": ok")
+			_ok += 1
+			to_remove.append(child)
+		elif _frame > 10:
+			print("[smoke] " + pkg + ": FAILED (timeout)")
+			to_remove.append(child)
 
-		var n: Node = s.instantiate()
-		add_child(n)
-		var ok: bool = false
-		if n.has_method("run_headless_test"):
-			ok = n.run_headless_test()
-		print("[smoke] " + pkg + ": " + ("ok" if ok else "FAILED"))
-		if ok: _ok += 1
-		n.free()
+	for panel in to_remove:
+		remove_child(panel)
+		panel.queue_free()
 
-	print("GodotFairyGUI smoke: %d/%d" % [_ok, _total])
-	get_tree().quit(0 if _ok == _total else 1)
+	if get_child_count() == 0:
+		print("GodotFairyGUI smoke: %d/%d" % [_ok, _total])
+		get_tree().quit(0 if _ok == _total else 1)

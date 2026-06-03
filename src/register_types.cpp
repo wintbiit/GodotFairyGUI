@@ -11,12 +11,14 @@
 #include "runtime/g_movie_clip.h"
 #include "runtime/g_object.h"
 #include "runtime/g_progress_bar.h"
+#include "runtime/g_root.h"
 #include "runtime/g_scroll_bar.h"
 #include "runtime/g_slider.h"
 #include "runtime/g_text_field.h"
 #include "runtime/g_text_input.h"
 #include "runtime/g_tween.h"
 #include "runtime/ui_package.h"
+#include "runtime/ui_panel.h"
 
 #include <godot_cpp/core/defs.hpp>
 #include <godot_cpp/godot.hpp>
@@ -29,6 +31,8 @@ void initialize_godot_fairygui_module(ModuleInitializationLevel p_level) {
     }
 
     GDREGISTER_CLASS(UIPackage);
+    GDREGISTER_CLASS(GRoot);
+    GDREGISTER_CLASS(UIPanel);
     GDREGISTER_CLASS(GObject);
     GDREGISTER_CLASS(GComponent);
     GDREGISTER_CLASS(GButton);

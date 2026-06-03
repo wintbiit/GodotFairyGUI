@@ -155,8 +155,8 @@ jobs:
           GODOT=$(ls Godot_*linux*headless* 2>/dev/null | head -1)
           [ -z "$GODOT" ] && { echo "WARNING: Godot binary not found in zip"; exit 0; }
           chmod +x "$GODOT"
-          "$GODOT" --headless --path example res://scenes/smoke_test.tscn --quit 2>&1 | tee smoke_log.txt
-          grep -q "GodotFairyGUI smoke: ok" smoke_log.txt || {
+          "$GODOT" --headless --path example res://scenes/smoke_test.tscn 2>&1 | tee smoke_log.txt
+          grep -q "GodotFairyGUI smoke: 25/25" smoke_log.txt || {
             echo "WARNING: Smoke test failed (non-critical)"
             tail -20 smoke_log.txt
             exit 0
