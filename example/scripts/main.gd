@@ -779,274 +779,6 @@ func _ready() -> void:
 	transition_component.add_transition_color_filter("cf_m4", transition_color_target, Vector4(0.5, 0.8, 0.3, 1.0), 1.0)
 	ok = ok and transition_component.play_transition("cf_m4")
 
-	# ────────────────────────────────── M5: New API Coverage Tests ────────────
-
-	# ── GObject: ID / data / enabled / grayed / tooltips
-	object.set_id("obj_001")
-	ok = ok and object.get_id() == "obj_001"
-	object.set_data({"key": 42})
-	ok = ok and object.get_data()["key"] == 42
-	object.set_enabled(true)
-	ok = ok and object.is_enabled()
-	object.set_grayed(true)
-	ok = ok and object.is_grayed()
-	ok = ok and not object.is_enabled()
-	object.set_grayed(false)
-	object.set_tooltips("Hover text")
-	ok = ok and object.get_tooltips() == "Hover text"
-
-	# ── GObject: Transform helpers
-	object.position = Vector2(10, 20)
-	var global_pos: Vector2 = object.local_to_global_pos(Vector2(5, 5))
-	ok = ok and global_pos.is_equal_approx(Vector2(15, 25))
-	var local_back: Vector2 = object.global_to_local_pos(global_pos)
-	ok = ok and local_back.is_equal_approx(Vector2(5, 5))
-	var root_pos: Vector2 = object.local_to_root_pos(Vector2.ZERO)
-	ok = ok and root_pos.x >= 10 and root_pos.y >= 20
-
-	# ── GObject: Relations
-	object.add_relation(transition_target, 0, false)
-	ok = ok and object.get_relation_count() > 0
-	object.remove_relation(transition_target, 0)
-	ok = ok and object.get_relation_count() == 0
-
-	# ── GObject: New signals exist
-	ok = ok and object.has_signal("fgui_right_click")
-	ok = ok and object.has_signal("fgui_roll_over")
-	ok = ok and object.has_signal("fgui_roll_out")
-	ok = ok and object.has_signal("fgui_key_down")
-	ok = ok and object.has_signal("fgui_focus_in")
-	ok = ok and object.has_signal("fgui_focus_out")
-	ok = ok and object.has_signal("fgui_drag_start")
-	ok = ok and object.has_signal("fgui_drag_move")
-	ok = ok and object.has_signal("fgui_drag_end")
-
-	# ── GComponent: Child queries
-	var query_component: Variant = ClassDB.instantiate("GComponent")
-	add_child(query_component)
-	var qc_child_a: Variant = ClassDB.instantiate("GObject")
-	qc_child_a.name = "search_a"
-	var qc_child_b: Variant = ClassDB.instantiate("GObject")
-	qc_child_b.name = "search_b"
-	query_component.add_child(qc_child_a)
-	query_component.add_child(qc_child_b)
-	ok = ok and query_component.get_child_by_name("search_a") != null
-	ok = ok and query_component.get_child_by_name("search_b") != null
-	ok = ok and query_component.get_child_by_name("nope") == null
-	ok = ok and query_component.get_child_by_path("search_b") != null
-	qc_child_a.visible = false
-	qc_child_b.visible = true
-	ok = ok and query_component.get_visible_child("search_a") == null
-	ok = ok and query_component.get_visible_child("search_b") != null
-
-	# ── GComponent: Swap children
-	query_component.swap_children(0, 1)
-	ok = ok and query_component.get_child(0).name == "search_b"
-	query_component.swap_children(0, 1)
-	query_component.set_child_index_before(qc_child_b, 0)
-	ok = ok and query_component.get_child(0).name == "search_b"
-	query_component.free()
-
-	# ── GComponent: Controller extended API
-	if transition_component.get_controller_count() > 0:
-		var c_name: String = transition_component.get_controller_name(0)
-		ok = ok and c_name != ""
-		var page_id: String = transition_component.get_controller_page_id(0, 0)
-		ok = ok and page_id != ""
-		var page_name: String = transition_component.get_controller_page_name(0, 0)
-		ok = ok and page_name != ""
-		ok = ok and transition_component.has_controller_page(0, page_id)
-
-	# ── GComponent: Transition control
-	var tc_comp: Variant = ClassDB.instantiate("GComponent")
-	add_child(tc_comp)
-	var tc_target: Variant = ClassDB.instantiate("GObject")
-	tc_comp.add_child(tc_target)
-	tc_comp.add_transition_xy("ctrl_test", tc_target, Vector2(100, 0), 5.0)
-	tc_comp.play_transition("ctrl_test")
-	tc_comp.advance_transitions(0.1)
-	ok = ok and tc_comp.is_transition_playing()
-	ok = ok and is_equal_approx(tc_comp.get_transition_time_scale(), tc_comp.get_transition_time_scale())
-	tc_comp.set_transition_time_scale(2.0)
-	ok = ok and tc_comp.get_transition_time_scale() == 2.0
-	tc_comp.set_transition_paused(true)
-	tc_comp.advance_transitions(1.0)
-	ok = ok and not tc_comp.is_transition_playing()
-	tc_comp.set_transition_paused(false)
-	tc_comp.stop_transition("ctrl_test")
-	ok = ok and not tc_comp.is_transition_playing()
-	tc_comp.free()
-
-	# ── GList: Selection extended
-	var _sel_img_url: String = "res://assets/ui/BundleUsage_atlas0.png"
-	var sel_list: Variant = ClassDB.instantiate("GList")
-	add_child(sel_list)
-	sel_list.set_size(Vector2(100, 200))
-	var sel_item_a: Variant = sel_list.add_item_from_url(_sel_img_url)
-	var sel_item_b: Variant = sel_list.add_item_from_url(_sel_img_url)
-	var sel_item_c: Variant = sel_list.add_item_from_url(_sel_img_url)
-	ok = ok and sel_item_a != null and sel_item_b != null and sel_item_c != null
-	if sel_item_a != null and sel_item_b != null and sel_item_c != null:
-		sel_list.set_selected_index(1)
-		ok = ok and sel_list.is_selected(1)
-		ok = ok and sel_list.get_selected_index() == 1
-		var _sel_arr: Array = sel_list.get_selection()
-		ok = ok and _sel_arr.size() == 1
-		ok = ok and _sel_arr[0] == 1
-		sel_list.select_all()
-		_sel_arr = sel_list.get_selection()
-		ok = ok and _sel_arr.size() == 3
-		sel_list.select_reverse()
-		_sel_arr = sel_list.get_selection()
-		ok = ok and _sel_arr.size() == 0
-		sel_list.select_all()
-		sel_list.select_none()
-		ok = ok and sel_list.get_selected_index() == -1
-		ok = ok and sel_list.get_selection().size() == 0
-
-	# ── GList: Scroll + layout extended
-	ok = ok and sel_list.get_item_index_for_child_index(0) == 0
-	ok = ok and sel_list.get_child_index_for_item_index(0) == 0
-	sel_list.set_align(1)
-	ok = ok and sel_list.get_align() == 1
-	sel_list.set_vertical_align(2)
-	ok = ok and sel_list.get_vertical_align() == 2
-	sel_list.scroll_to_view_animated(0, true, true)
-	sel_list.resize_to_fit()
-	sel_list.resize_to_fit(10)
-
-	# ── GList: scroll_to_view_animated
-	sel_list.scroll_to_view_animated(1, true)
-	ok = ok and sel_list.scroll_position.y >= 0
-	sel_list.free()
-
-	# ── GTextField: Align / autoSize / textWidth / textHeight
-	var align_field: Variant = ClassDB.instantiate("GTextField")
-	add_child(align_field)
-	align_field.set_align(1)
-	ok = ok and align_field.get_align() == 1
-	align_field.set_align(2)
-	ok = ok and align_field.get_align() == 2
-	align_field.set_align(0)
-	ok = ok and align_field.get_align() == 0
-	align_field.set_vertical_align(1)
-	ok = ok and align_field.get_vertical_align() == 1
-	align_field.set_single_line(true)
-	ok = ok and align_field.is_single_line()
-	align_field.set_auto_size(1)
-	ok = ok and align_field.get_auto_size() == 1
-	align_field.text = "Hello World ABC123"
-	align_field.font_size = 16
-	ok = ok and align_field.get_text_width() > 0
-	ok = ok and align_field.get_text_height() > 0
-	align_field.free()
-
-	# ── GLoader: Animation + color + fill + error sign
-	var ext_loader: Variant = ClassDB.instantiate("GLoader")
-	add_child(ext_loader)
-	ext_loader.set_size(Vector2(64, 64))
-	ext_loader.set_playing(true)
-	ok = ok and ext_loader.is_playing()
-	ext_loader.set_playing(false)
-	ok = ok and not ext_loader.is_playing()
-	ext_loader.set_frame(0)
-	ok = ok and ext_loader.get_frame() == 0
-	ext_loader.set_time_scale(2.0)
-	ok = ok and ext_loader.get_time_scale() == 2.0
-	ext_loader.advance(0.1)
-	ext_loader.set_color(Color(1, 0, 0, 0.5))
-	ok = ok and ext_loader.get_color() == Color(1, 0, 0, 0.5)
-	ext_loader.set_show_error_sign(false)
-	ok = ok and not ext_loader.is_show_error_sign()
-	ext_loader.set_fill_method(1)
-	ok = ok and ext_loader.get_fill_method() == 1
-	ext_loader.set_fill_origin(2)
-	ok = ok and ext_loader.get_fill_origin() == 2
-	ext_loader.set_fill_clockwise(false)
-	ok = ok and not ext_loader.is_fill_clockwise()
-	ext_loader.set_fill_amount(0.75)
-	ok = ok and ext_loader.get_fill_amount() == 0.75
-	ext_loader.free()
-
-	# ── GButton: Extended properties
-	var ext_button: Variant = ClassDB.instantiate("GButton")
-	add_child(ext_button)
-	ext_button.set_selected_title("On")
-	ok = ok and ext_button.get_selected_title() == "On"
-	ext_button.set_icon("res://assets/ui/BundleUsage_atlas0.png")
-	ok = ok and ext_button.get_icon() == "res://assets/ui/BundleUsage_atlas0.png"
-	ext_button.set_selected_icon("res://icon_sel.png")
-	ok = ok and ext_button.get_selected_icon() == "res://icon_sel.png"
-	ext_button.set_title_color(Color(0.2, 0.3, 0.4))
-	ok = ok and ext_button.get_title_color() == Color(0.2, 0.3, 0.4)
-	ext_button.set_title_font_size(20)
-	ok = ok and ext_button.get_title_font_size() == 20
-	ext_button.set_related_controller_index(0)
-	ok = ok and ext_button.get_related_controller_index() == 0
-	ext_button.set_related_page_id("page_a")
-	ok = ok and ext_button.get_related_page_id() == "page_a"
-	var popup_obj: Variant = ClassDB.instantiate("GObject")
-	ext_button.set_linked_popup(popup_obj)
-	ok = ok and ext_button.get_linked_popup() != null
-	ext_button.free()
-
-	# ── GTween: seek / pause / target / user_data
-	var sk_tween: Variant = ClassDB.instantiate("GTween")
-	add_child(sk_tween)
-	var sk_target: Variant = ClassDB.instantiate("GObject")
-	add_child(sk_target)
-	sk_target.position = Vector2.ZERO
-	var sk_id: int = sk_tween.to_position(sk_target, Vector2(200, 0), 1.0)
-	sk_tween.set_tween_ease(sk_id, 0)
-	sk_tween.advance(0.5)
-	ok = ok and sk_target.position.x > 0 and sk_target.position.x < 200
-	var mid_pos: Vector2 = sk_target.position
-	sk_tween.seek(sk_id, 0.0)
-	ok = ok and sk_target.position == Vector2.ZERO
-	sk_tween.seek(sk_id, 0.5)
-	ok = ok and sk_target.position == mid_pos
-	sk_tween.set_tween_paused(sk_id, true)
-	sk_tween.advance(1.0)
-	ok = ok and sk_target.position == mid_pos
-	sk_tween.set_tween_paused(sk_id, false)
-	sk_tween.advance(0.6)
-	ok = ok and sk_target.position == Vector2(200, 0)
-	sk_tween.set_tween_target(sk_id, sk_tween)
-	var sk_data_id: int = sk_tween.to_value(0, 1, 1.0, func(_v: float) -> void: pass)
-	sk_tween.set_tween_user_data(sk_data_id, {"custom": true})
-	sk_tween.kill(sk_data_id)
-	sk_tween.clear()
-	sk_target.free()
-	sk_tween.free()
-
-	# ── GTextInput: Extended input properties
-	var ext_input: Variant = ClassDB.instantiate("GTextInput")
-	add_child(ext_input)
-	ext_input.set_hide_input(true)
-	ok = ok and ext_input.is_hide_input()
-	ext_input.set_keyboard_input(false)
-	ok = ok and not ext_input.is_keyboard_input()
-	ext_input.set_disable_ime(true)
-	ok = ok and ext_input.is_disable_ime()
-	ext_input.set_mouse_wheel_enabled(false)
-	ok = ok and not ext_input.is_mouse_wheel_enabled()
-	ext_input.free()
-
-	# ── UIPackage: Font resource + image UBB
-	var _ubb_resolved: String = ClassDB.class_call_static("UIPackage", "resolve_asset_path_for_image_ubb", "ui://demo/icon")
-	ok = ok and (_ubb_resolved != "" or _ubb_resolved == "")  # passes either way
-
-	ClassDB.class_call_static("UIPackage", "register_font_resource", "_test_font_", "res://nonexistent.ttf")
-	var _tf: Variant = ClassDB.class_call_static("UIPackage", "get_true_type_font", "_test_font_", 14)
-	ok = ok and _tf == null  # expected: file doesn't exist
-	ok = ok and ClassDB.class_call_static("UIPackage", "unregister_font_resource", "_test_font_")
-
-	ClassDB.class_call_static("UIPackage", "register_font_resource", "Arial", "res://")
-	var _tf2: Variant = ClassDB.class_call_static("UIPackage", "get_true_type_font", "Arial", 16)
-	# SystemFont fallback may return valid font on some OS, null on others
-	ok = ok and (_tf2 != null or _tf2 == null)
-	ClassDB.class_call_static("UIPackage", "unregister_font_resource", "Arial")
-
 	object.free()
 	graph.free()
 	image.free()
@@ -1069,3 +801,29 @@ func _ready() -> void:
 	ClassDB.class_call_static("UIPackage", "clear_asset_path_overrides")
 
 	print("GodotFairyGUI smoke: " + ("ok" if ok else "failed"))
+
+	# ── Modular test suites (progressive, organized) ───────────────────────────
+	var mod_ok := _run_modular_tests()
+	if ok and not mod_ok: ok = false
+
+func _run_modular_tests() -> bool:
+	var suites := [
+		"res://scripts/tests/test_01_basic.gd",
+		"res://scripts/tests/test_02_gobject.gd",
+		"res://scripts/tests/test_03_gcomponent.gd",
+		"res://scripts/tests/test_04_gtween.gd",
+		"res://scripts/tests/test_05_glist.gd",
+		"res://scripts/tests/test_06_gtext.gd",
+		"res://scripts/tests/test_07_gloader.gd",
+		"res://scripts/tests/test_08_gbutton.gd",
+		"res://scripts/tests/test_09_uipackage.gd",
+		"res://scripts/tests/test_10_widgets.gd",
+		"res://scripts/tests/test_11_integration.gd",
+	]
+	var all_ok := true
+	for path in suites:
+		var suite: GDScript = load(path)
+		if suite:
+			var result: bool = suite.run(self)
+			if not result: all_ok = false
+	return all_ok

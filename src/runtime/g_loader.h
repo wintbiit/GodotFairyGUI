@@ -7,6 +7,8 @@
 
 namespace godot {
 
+class HTTPRequest;
+
 class GLoader : public GObject {
     GDCLASS(GLoader, GObject)
 
@@ -14,6 +16,13 @@ protected:
     static void _bind_methods();
 
 public:
+    enum LoaderState {
+        STATE_IDLE = 0,
+        STATE_LOADING = 1,
+        STATE_LOADED = 2,
+        STATE_FAILED = 3,
+    };
+
     void _draw() override;
     void _notification(int p_what);
     void setup_before_add(fgui::ByteBuffer &p_buffer, int64_t p_begin_pos) override;
@@ -22,6 +31,7 @@ public:
     String get_url() const;
     Ref<Texture2D> get_texture() const;
     bool has_content_node() const;
+    int32_t get_state() const;
     void set_align(int32_t p_align);
     int32_t get_align() const;
     void set_vertical_align(int32_t p_vertical_align);
@@ -82,9 +92,15 @@ private:
     bool fill_clockwise = true;
     float fill_amount = 1.0f;
 
+    LoaderState load_state = STATE_IDLE;
+    HTTPRequest *http_request = nullptr;
+    String loading_url;
+
     void load_content();
+    void cancel_http_request();
     void update_layout();
     void clear_content();
+    void _on_http_request_completed(int32_t p_result, int32_t p_response_code, const PackedStringArray &p_headers, const PackedByteArray &p_body);
 };
 
 } // namespace godot

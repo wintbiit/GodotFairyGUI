@@ -682,6 +682,7 @@ void GComponent::stop_transition_at(int32_t p_index, bool p_set_to_complete) {
     for (int32_t i = 0; i < transition.items.size(); i++) {
         stop_transition_item(transition.items.write[i], p_set_to_complete);
     }
+    transition.active_play_index = -1;
     transition.paused = false;
 }
 

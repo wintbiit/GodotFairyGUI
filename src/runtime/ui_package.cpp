@@ -1306,6 +1306,7 @@ Ref<Font> UIPackage::get_true_type_font(const String &p_font_name, int32_t p_fon
                 return font_file;
             }
             WARN_PRINT(vformat("UIPackage: TrueType font '%s' failed to load from '%s'", p_font_name, F->value));
+            return Ref<Font>();
         }
     }
 
@@ -1318,8 +1319,6 @@ Ref<Font> UIPackage::get_true_type_font(const String &p_font_name, int32_t p_fon
         font_cache[cache_key] = sys_font;
         return sys_font;
     }
-
-    return Ref<Font>();
 }
 
 String UIPackage::resolve_asset_path_for_image_ubb(const String &p_image_url) {

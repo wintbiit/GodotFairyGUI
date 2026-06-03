@@ -3,6 +3,9 @@
 #include "g_movie_clip.h"
 #include "ui_package.h"
 
+#include <godot_cpp/classes/http_request.hpp>
+#include <godot_cpp/classes/image.hpp>
+#include <godot_cpp/classes/image_texture.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
@@ -44,6 +47,14 @@ void GLoader::_bind_methods() {
     ClassDB::bind_method(D_METHOD("is_fill_clockwise"), &GLoader::is_fill_clockwise);
     ClassDB::bind_method(D_METHOD("set_fill_amount", "fill_amount"), &GLoader::set_fill_amount);
     ClassDB::bind_method(D_METHOD("get_fill_amount"), &GLoader::get_fill_amount);
+    ClassDB::bind_method(D_METHOD("get_state"), &GLoader::get_state);
+    ClassDB::bind_method(D_METHOD("cancel_http_request"), &GLoader::cancel_http_request);
+    ClassDB::bind_method(D_METHOD("_on_http_request_completed", "result", "response_code", "headers", "body"), &GLoader::_on_http_request_completed);
+
+    BIND_CONSTANT(STATE_IDLE);
+    BIND_CONSTANT(STATE_LOADING);
+    BIND_CONSTANT(STATE_LOADED);
+    BIND_CONSTANT(STATE_FAILED);
 
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "url"), "set_url", "get_url");
     ADD_PROPERTY(PropertyInfo(Variant::INT, "align"), "set_align", "get_align");
@@ -61,6 +72,10 @@ void GLoader::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::INT, "fill_origin"), "set_fill_origin", "get_fill_origin");
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "fill_clockwise"), "set_fill_clockwise", "is_fill_clockwise");
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "fill_amount"), "set_fill_amount", "get_fill_amount");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "state"), "", "get_state");
+
+    ADD_SIGNAL(MethodInfo("fgui_loaded"));
+    ADD_SIGNAL(MethodInfo("fgui_load_failed"));
 }
 
 void GLoader::_draw() {
@@ -73,6 +88,11 @@ void GLoader::_draw() {
 void GLoader::_notification(int p_what) {
     if (p_what == NOTIFICATION_RESIZED) {
         update_layout();
+        return;
+    }
+    if (p_what == NOTIFICATION_PREDELETE) {
+        cancel_http_request();
+        return;
     }
 }
 
@@ -184,8 +204,36 @@ Rect2 GLoader::get_content_rect() const {
 }
 
 void GLoader::load_content() {
+    cancel_http_request();
     clear_content();
+    load_state = STATE_IDLE;
+
     if (url.is_empty()) {
+        return;
+    }
+
+    if (url.begins_with("http://") || url.begins_with("https://")) {
+        load_state = STATE_LOADING;
+        loading_url = url;
+
+        if (http_request == nullptr) {
+            http_request = memnew(HTTPRequest);
+            http_request->set_name("_HttpRequest");
+            http_request->set_use_threads(true);
+            add_child(http_request);
+        }
+
+        Callable callback(this, "_on_http_request_completed");
+        if (!http_request->is_connected("request_completed", callback)) {
+            http_request->connect("request_completed", callback);
+        }
+
+        Error err = http_request->request(url);
+        if (err != OK) {
+            load_state = STATE_FAILED;
+            loading_url = String();
+            emit_signal("fgui_load_failed");
+        }
         return;
     }
 
@@ -349,3 +397,56 @@ void GLoader::set_fill_clockwise(bool p_fill_clockwise) { fill_clockwise = p_fil
 bool GLoader::is_fill_clockwise() const { return fill_clockwise; }
 void GLoader::set_fill_amount(float p_fill_amount) { fill_amount = p_fill_amount; queue_redraw(); }
 float GLoader::get_fill_amount() const { return fill_amount; }
+
+int32_t GLoader::get_state() const { return static_cast<int32_t>(load_state); }
+
+void GLoader::cancel_http_request() {
+    if (http_request != nullptr) {
+        http_request->cancel_request();
+        if (http_request->is_connected("request_completed", Callable(this, "_on_http_request_completed"))) {
+            http_request->disconnect("request_completed", Callable(this, "_on_http_request_completed"));
+        }
+        remove_child(http_request);
+        memdelete(http_request);
+        http_request = nullptr;
+    }
+    load_state = STATE_IDLE;
+    loading_url = String();
+}
+
+void GLoader::_on_http_request_completed(int32_t p_result, int32_t p_response_code, const PackedStringArray &p_headers, const PackedByteArray &p_body) {
+    (void)p_headers;
+
+    if (http_request == nullptr || loading_url.is_empty() || loading_url != url) {
+        return;
+    }
+
+    cancel_http_request();
+
+    if (p_result != HTTPRequest::RESULT_SUCCESS || p_response_code < 200 || p_response_code >= 400) {
+        load_state = STATE_FAILED;
+        emit_signal("fgui_load_failed");
+        return;
+    }
+
+    Ref<Image> image;
+    image.instantiate();
+    Error img_err = image->load_png_from_buffer(p_body);
+    if (img_err != OK) {
+        img_err = image->load_jpg_from_buffer(p_body);
+    }
+    if (img_err != OK) {
+        img_err = image->load_webp_from_buffer(p_body);
+    }
+
+    if (img_err != OK || image->is_empty()) {
+        load_state = STATE_FAILED;
+        emit_signal("fgui_load_failed");
+        return;
+    }
+
+    texture = ImageTexture::create_from_image(image);
+    load_state = STATE_LOADED;
+    update_layout();
+    emit_signal("fgui_loaded");
+}

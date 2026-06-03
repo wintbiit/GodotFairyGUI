@@ -27,6 +27,7 @@ void GObject::_bind_methods() {
     ClassDB::bind_method(D_METHOD("local_to_root_pos", "local"), &GObject::local_to_root_pos);
     ClassDB::bind_method(D_METHOD("add_relation", "target", "relation_type", "percent"), &GObject::add_relation, DEFVAL(false));
     ClassDB::bind_method(D_METHOD("remove_relation", "target", "relation_type"), &GObject::remove_relation);
+    ClassDB::bind_method(D_METHOD("get_relation_count"), &GObject::get_relation_count);
 
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "touchable"), "set_touchable", "is_touchable");
     ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "package_item_id"), "set_package_item_id", "get_package_item_id");
