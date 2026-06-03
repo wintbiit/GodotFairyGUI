@@ -152,7 +152,7 @@ jobs:
             exit 0
           }
           chmod +x godot_binary
-          ./godot_binary --headless --path example --quit 2>&1 | tee smoke_log.txt
+          ./godot_binary --headless --path example res://scenes/smoke_test.tscn --quit 2>&1 | tee smoke_log.txt
           grep -q "GodotFairyGUI smoke: ok" smoke_log.txt || {
             echo "WARNING: Smoke test failed (non-critical)"
             tail -20 smoke_log.txt
