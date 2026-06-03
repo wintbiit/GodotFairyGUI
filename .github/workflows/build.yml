@@ -39,7 +39,7 @@ jobs:
 
       - name: Build (Windows)
         if: runner.os == 'Windows'
-        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui --parallel $(nproc)
 
       - name: Copy + rename (Windows)
         if: runner.os == 'Windows'
@@ -67,7 +67,7 @@ jobs:
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
-        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui --parallel $(nproc)
 
       - name: Copy + rename (Linux)
         if: runner.os == 'Linux'
@@ -89,7 +89,7 @@ jobs:
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
-        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui --parallel $(nproc)
 
       - name: Copy + rename (macOS)
         if: runner.os == 'macOS'
