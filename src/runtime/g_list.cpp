@@ -56,12 +56,27 @@ void GList::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_scroll_step", "step"), &GList::set_scroll_step);
     ClassDB::bind_method(D_METHOD("get_scroll_step"), &GList::get_scroll_step);
     ClassDB::bind_method(D_METHOD("handle_mouse_wheel", "button_index"), &GList::handle_mouse_wheel);
+    ClassDB::bind_method(D_METHOD("set_selected_index", "index"), &GList::set_selected_index);
+    ClassDB::bind_method(D_METHOD("select_all"), &GList::select_all);
+    ClassDB::bind_method(D_METHOD("select_none"), &GList::select_none);
+    ClassDB::bind_method(D_METHOD("select_reverse"), &GList::select_reverse);
+    ClassDB::bind_method(D_METHOD("get_selection"), &GList::get_selection);
+    ClassDB::bind_method(D_METHOD("scroll_to_view_animated", "index", "animated", "set_first"), &GList::scroll_to_view_animated, DEFVAL(false));
+    ClassDB::bind_method(D_METHOD("resize_to_fit", "max_item_count"), static_cast<void (GList::*)(int32_t)>(&GList::resize_to_fit), DEFVAL(0));
+    ClassDB::bind_method(D_METHOD("get_item_index_for_child_index", "child_index"), &GList::get_item_index_for_child_index);
+    ClassDB::bind_method(D_METHOD("get_child_index_for_item_index", "item_index"), &GList::get_child_index_for_item_index);
+    ClassDB::bind_method(D_METHOD("set_align", "align"), &GList::set_align);
+    ClassDB::bind_method(D_METHOD("get_align"), &GList::get_align);
+    ClassDB::bind_method(D_METHOD("set_vertical_align", "vertical_align"), &GList::set_vertical_align);
+    ClassDB::bind_method(D_METHOD("get_vertical_align"), &GList::get_vertical_align);
 
     ADD_SIGNAL(MethodInfo("fgui_click_item", PropertyInfo(Variant::INT, "index"), PropertyInfo(Variant::OBJECT, "item")));
     ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "scroll_position"), "set_scroll_position", "get_scroll_position");
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "scroll_step"), "set_scroll_step", "get_scroll_step");
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "default_item"), "set_default_item", "get_default_item");
     ADD_PROPERTY(PropertyInfo(Variant::INT, "num_items"), "set_num_items", "get_num_items");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "align"), "set_align", "get_align");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "vertical_align"), "set_vertical_align", "get_vertical_align");
 }
 
 
@@ -789,3 +804,94 @@ GButton *GList::get_mutable_button_item(int32_t p_index) {
     }
     return Object::cast_to<GButton>(get_child(p_index));
 }
+
+void GList::set_selected_index(int32_t p_index) {
+    clear_selection();
+    add_selection(p_index);
+}
+
+void GList::select_all() {
+    for (int32_t i = 0; i < get_item_count(); i++) {
+        add_selection(i);
+    }
+}
+
+void GList::select_none() {
+    clear_selection();
+}
+
+void GList::select_reverse() {
+    if (virtual_list) {
+        Vector<int32_t> prev_selected = selected_indices;
+        clear_selection();
+        for (int32_t i = 0; i < get_item_count(); i++) {
+            bool was_selected = false;
+            for (int32_t j = 0; j < prev_selected.size(); j++) {
+                if (prev_selected[j] == i) { was_selected = true; break; }
+            }
+            if (!was_selected) add_selection(i);
+        }
+    } else {
+        for (int32_t i = 0; i < get_item_count(); i++) {
+            if (is_selected(i)) { remove_selection(i); }
+            else { add_selection(i); }
+        }
+    }
+}
+
+TypedArray<int32_t> GList::get_selection() const {
+    TypedArray<int32_t> result;
+    if (virtual_list) {
+        for (int32_t i = 0; i < selected_indices.size(); i++) {
+            result.append(selected_indices[i]);
+        }
+    } else {
+        for (int32_t i = 0; i < get_item_count(); i++) {
+            if (is_selected(i)) result.append(i);
+        }
+    }
+    return result;
+}
+
+void GList::scroll_to_view_animated(int32_t p_index, bool p_animated, bool p_set_first) {
+    (void)p_animated;
+    (void)p_set_first;
+    scroll_to_view(p_index);
+}
+
+void GList::resize_to_fit() {
+    resize_to_fit(0);
+}
+
+void GList::resize_to_fit(int32_t p_max_item_count) {
+    (void)p_max_item_count;
+    Vector2 max_extent;
+    for (int32_t i = 0; i < get_child_count(); i++) {
+        GObject *item = Object::cast_to<GObject>(get_child(i));
+        if (item == nullptr) continue;
+        const Vector2 item_pos = item->get_position();
+        const Vector2 item_size = item->get_size();
+        max_extent.x = MAX(max_extent.x, item_pos.x + item_size.x);
+        max_extent.y = MAX(max_extent.y, item_pos.y + item_size.y);
+    }
+    set_size(max_extent);
+}
+
+int32_t GList::get_item_index_for_child_index(int32_t p_child_index) const {
+    return virtual_list ? get_physical_index_for_virtual_index(p_child_index) : p_child_index;
+}
+
+int32_t GList::get_child_index_for_item_index(int32_t p_item_index) const {
+    if (!virtual_list) return p_item_index;
+    for (int32_t i = 0; i < virtual_items.size(); i++) {
+        if (virtual_item_indices[i] == p_item_index) {
+            return virtual_items[i] != nullptr ? virtual_items[i]->get_index() : -1;
+        }
+    }
+    return -1;
+}
+
+void GList::set_align(int32_t p_align) { list_align = p_align; }
+int32_t GList::get_align() const { return list_align; }
+void GList::set_vertical_align(int32_t p_vertical_align) { list_vertical_align = p_vertical_align; }
+int32_t GList::get_vertical_align() const { return list_vertical_align; }

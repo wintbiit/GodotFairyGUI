@@ -24,6 +24,14 @@ void GTextInput::_bind_methods() {
     ClassDB::bind_method(D_METHOD("is_display_as_password"), &GTextInput::is_display_as_password);
     ClassDB::bind_method(D_METHOD("set_multiline", "multiline"), &GTextInput::set_multiline);
     ClassDB::bind_method(D_METHOD("is_multiline"), &GTextInput::is_multiline);
+    ClassDB::bind_method(D_METHOD("set_hide_input", "hide_input"), &GTextInput::set_hide_input);
+    ClassDB::bind_method(D_METHOD("is_hide_input"), &GTextInput::is_hide_input);
+    ClassDB::bind_method(D_METHOD("set_keyboard_input", "keyboard_input"), &GTextInput::set_keyboard_input);
+    ClassDB::bind_method(D_METHOD("is_keyboard_input"), &GTextInput::is_keyboard_input);
+    ClassDB::bind_method(D_METHOD("set_disable_ime", "disable_ime"), &GTextInput::set_disable_ime);
+    ClassDB::bind_method(D_METHOD("is_disable_ime"), &GTextInput::is_disable_ime);
+    ClassDB::bind_method(D_METHOD("set_mouse_wheel_enabled", "mouse_wheel_enabled"), &GTextInput::set_mouse_wheel_enabled);
+    ClassDB::bind_method(D_METHOD("is_mouse_wheel_enabled"), &GTextInput::is_mouse_wheel_enabled);
     ClassDB::bind_method(D_METHOD("set_caret_position", "position"), &GTextInput::set_caret_position);
     ClassDB::bind_method(D_METHOD("get_caret_position"), &GTextInput::get_caret_position);
     ClassDB::bind_method(D_METHOD("set_selection", "start", "length"), &GTextInput::set_selection);
@@ -184,6 +192,18 @@ void GTextInput::set_multiline(bool p_multiline) {
 bool GTextInput::is_multiline() const {
     return multiline;
 }
+
+void GTextInput::set_hide_input(bool p_hide_input) { hide_input = p_hide_input; }
+bool GTextInput::is_hide_input() const { return hide_input; }
+
+void GTextInput::set_keyboard_input(bool p_keyboard_input) { keyboard_input = p_keyboard_input; }
+bool GTextInput::is_keyboard_input() const { return keyboard_input; }
+
+void GTextInput::set_disable_ime(bool p_disable_ime) { disable_ime = p_disable_ime; }
+bool GTextInput::is_disable_ime() const { return disable_ime; }
+
+void GTextInput::set_mouse_wheel_enabled(bool p_mouse_wheel_enabled) { text_input_mouse_wheel = p_mouse_wheel_enabled; }
+bool GTextInput::is_mouse_wheel_enabled() const { return text_input_mouse_wheel; }
 
 void GTextInput::set_caret_position(int32_t p_position) {
     update_native_input();

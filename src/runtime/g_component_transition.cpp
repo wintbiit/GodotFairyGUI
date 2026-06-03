@@ -28,6 +28,7 @@ bool GComponent::play_transition_at(int32_t p_index) {
     bool scheduled = false;
     GTween *tween = get_transition_tween();
     TransitionData &transition = transitions.write[p_index];
+    transition.active_play_index = p_index;
     for (int32_t i = 0; i < transition.items.size(); i++) {
         TransitionItem &item = transition.items.write[i];
         Object *target = resolve_transition_target(item);

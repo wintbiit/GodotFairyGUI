@@ -54,19 +54,38 @@ public:
     void remove_selection(int32_t p_index);
     void clear_selection();
     bool is_selected(int32_t p_index) const;
+    void set_selected_index(int32_t p_index);
     int32_t get_selected_index() const;
     void handle_item_click(GObject *p_item);
+
+    void select_all();
+    void select_none();
+    void select_reverse();
+    TypedArray<int32_t> get_selection() const;
     void set_scroll_position(const Vector2 &p_position);
     Vector2 get_scroll_position() const;
     Vector2 get_content_size() const;
     void scroll_to_view(int32_t p_index);
+    void scroll_to_view_animated(int32_t p_index, bool p_animated, bool p_set_first = false);
+    void resize_to_fit();
+    void resize_to_fit(int32_t p_max_item_count);
     void set_scroll_step(float p_step);
     float get_scroll_step() const;
     bool handle_mouse_wheel(int32_t p_button_index);
 
+    int32_t get_item_index_for_child_index(int32_t p_child_index) const;
+    int32_t get_child_index_for_item_index(int32_t p_item_index) const;
+
+    void set_align(int32_t p_align);
+    int32_t get_align() const;
+    void set_vertical_align(int32_t p_vertical_align);
+    int32_t get_vertical_align() const;
+
 private:
     fgui::ListLayoutType layout = fgui::ListLayoutType::SingleColumn;
     fgui::ListSelectionMode selection_mode = fgui::ListSelectionMode::Single;
+    int32_t list_align = 0;
+    int32_t list_vertical_align = 0;
     int32_t line_gap = 0;
     int32_t column_gap = 0;
     int32_t line_count = 0;

@@ -1,5 +1,6 @@
 #include "g_button.h"
 
+#include "g_loader.h"
 #include "ui_package.h"
 
 #include <godot_cpp/classes/audio_stream.hpp>
@@ -23,11 +24,34 @@ void GButton::_bind_methods() {
     ClassDB::bind_method(D_METHOD("has_sound_stream"), &GButton::has_sound_stream);
     ClassDB::bind_method(D_METHOD("play_sound"), &GButton::play_sound);
     ClassDB::bind_method(D_METHOD("has_sound_player"), &GButton::has_sound_player);
+    ClassDB::bind_method(D_METHOD("set_selected_title", "title"), &GButton::set_selected_title);
+    ClassDB::bind_method(D_METHOD("get_selected_title"), &GButton::get_selected_title);
+    ClassDB::bind_method(D_METHOD("set_icon", "icon"), &GButton::set_icon);
+    ClassDB::bind_method(D_METHOD("get_icon"), &GButton::get_icon);
+    ClassDB::bind_method(D_METHOD("set_selected_icon", "icon"), &GButton::set_selected_icon);
+    ClassDB::bind_method(D_METHOD("get_selected_icon"), &GButton::get_selected_icon);
+    ClassDB::bind_method(D_METHOD("set_title_color", "color"), &GButton::set_title_color);
+    ClassDB::bind_method(D_METHOD("get_title_color"), &GButton::get_title_color);
+    ClassDB::bind_method(D_METHOD("set_title_font_size", "size"), &GButton::set_title_font_size);
+    ClassDB::bind_method(D_METHOD("get_title_font_size"), &GButton::get_title_font_size);
+    ClassDB::bind_method(D_METHOD("set_related_controller_index", "controller_index"), &GButton::set_related_controller_index);
+    ClassDB::bind_method(D_METHOD("get_related_controller_index"), &GButton::get_related_controller_index);
+    ClassDB::bind_method(D_METHOD("set_related_page_id", "page_id"), &GButton::set_related_page_id);
+    ClassDB::bind_method(D_METHOD("get_related_page_id"), &GButton::get_related_page_id);
+    ClassDB::bind_method(D_METHOD("set_linked_popup", "popup"), &GButton::set_linked_popup);
+    ClassDB::bind_method(D_METHOD("get_linked_popup"), &GButton::get_linked_popup);
 
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "selected"), "set_selected", "is_selected");
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "title"), "set_title", "get_title");
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "sound_url"), "set_sound_url", "get_sound_url");
     ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "sound_volume_scale"), "set_sound_volume_scale", "get_sound_volume_scale");
+    ADD_PROPERTY(PropertyInfo(Variant::STRING, "selected_title"), "set_selected_title", "get_selected_title");
+    ADD_PROPERTY(PropertyInfo(Variant::STRING, "icon"), "set_icon", "get_icon");
+    ADD_PROPERTY(PropertyInfo(Variant::STRING, "selected_icon"), "set_selected_icon", "get_selected_icon");
+    ADD_PROPERTY(PropertyInfo(Variant::COLOR, "title_color"), "set_title_color", "get_title_color");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "title_font_size"), "set_title_font_size", "get_title_font_size");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "related_controller_index"), "set_related_controller_index", "get_related_controller_index");
+    ADD_PROPERTY(PropertyInfo(Variant::STRING, "related_page_id"), "set_related_page_id", "get_related_page_id");
 
     ADD_SIGNAL(MethodInfo("fgui_selected_changed", PropertyInfo(Variant::BOOL, "selected")));
 }
@@ -152,3 +176,31 @@ bool GButton::play_sound() {
 bool GButton::has_sound_player() const {
     return sound_player != nullptr;
 }
+
+void GButton::set_selected_title(const String &p_title) { selected_title = p_title; }
+String GButton::get_selected_title() const { return selected_title; }
+
+void GButton::set_icon(const String &p_icon) {
+    icon = p_icon;
+    GLoader *loader = Object::cast_to<GLoader>(get_child_by_name("icon"));
+    if (loader != nullptr) loader->set_url(p_icon);
+}
+String GButton::get_icon() const { return icon; }
+
+void GButton::set_selected_icon(const String &p_icon) { selected_icon = p_icon; }
+String GButton::get_selected_icon() const { return selected_icon; }
+
+void GButton::set_title_color(const Color &p_color) { title_color = p_color; }
+Color GButton::get_title_color() const { return title_color; }
+
+void GButton::set_title_font_size(int32_t p_size) { title_font_size = p_size; }
+int32_t GButton::get_title_font_size() const { return title_font_size; }
+
+void GButton::set_related_controller_index(int32_t p_controller_index) { related_controller_index = p_controller_index; }
+int32_t GButton::get_related_controller_index() const { return related_controller_index; }
+
+void GButton::set_related_page_id(const String &p_page_id) { related_page_id = p_page_id; }
+String GButton::get_related_page_id() const { return related_page_id; }
+
+void GButton::set_linked_popup(GObject *p_popup) { linked_popup = p_popup; }
+GObject *GButton::get_linked_popup() const { return linked_popup; }

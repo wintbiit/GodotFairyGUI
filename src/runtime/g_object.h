@@ -7,6 +7,7 @@
 #include <godot_cpp/templates/hash_map.hpp>
 #include <godot_cpp/templates/vector.hpp>
 #include <godot_cpp/variant/string_name.hpp>
+#include <godot_cpp/variant/typed_array.hpp>
 
 namespace godot {
 
@@ -26,6 +27,30 @@ public:
 
     void set_package_item_id(const StringName &p_id);
     StringName get_package_item_id() const;
+
+    void set_id(const String &p_id);
+    String get_id() const;
+
+    void set_data(const Variant &p_data);
+    Variant get_data() const;
+
+    void set_enabled(bool p_enabled);
+    bool is_enabled() const;
+
+    void set_grayed(bool p_grayed);
+    bool is_grayed() const;
+
+    void set_tooltips(const String &p_tooltips);
+    String get_tooltips() const;
+
+    Vector2 local_to_global_pos(const Vector2 &p_local) const;
+    Vector2 global_to_local_pos(const Vector2 &p_global) const;
+    Vector2 root_to_local_pos(const Vector2 &p_root) const;
+    Vector2 local_to_root_pos(const Vector2 &p_local) const;
+
+    void add_relation(GObject *p_target, int32_t p_relation_type, bool p_percent = false);
+    void remove_relation(GObject *p_target, int32_t p_relation_type);
+
     virtual void setup_before_add(fgui::ByteBuffer &p_buffer, int64_t p_begin_pos);
     virtual void setup_after_add(fgui::ByteBuffer &p_buffer, int64_t p_begin_pos);
     void apply_controller_visibility(int32_t p_controller_index, const String &p_selected_page_id);
@@ -79,6 +104,9 @@ private:
     HashMap<String, GearLookValue> gear_look_values;
     StringName package_item_id;
     Vector<RelationDef> parent_relations;
+    Variant user_data;
+    bool grayed = false;
+    String tooltips;
 
     void setup_gear(fgui::ByteBuffer &p_buffer, uint8_t p_gear_index);
     void apply_gear_xy(const String &p_selected_page_id);

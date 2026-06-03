@@ -1,5 +1,6 @@
 #include "g_loader.h"
 
+#include "g_movie_clip.h"
 #include "ui_package.h"
 
 #include <godot_cpp/core/class_db.hpp>
@@ -24,6 +25,25 @@ void GLoader::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_use_resize", "use_resize"), &GLoader::set_use_resize);
     ClassDB::bind_method(D_METHOD("is_use_resize"), &GLoader::is_use_resize);
     ClassDB::bind_method(D_METHOD("get_content_rect"), &GLoader::get_content_rect);
+    ClassDB::bind_method(D_METHOD("set_playing", "playing"), &GLoader::set_playing);
+    ClassDB::bind_method(D_METHOD("is_playing"), &GLoader::is_playing);
+    ClassDB::bind_method(D_METHOD("get_frame"), &GLoader::get_frame);
+    ClassDB::bind_method(D_METHOD("set_frame", "frame"), &GLoader::set_frame);
+    ClassDB::bind_method(D_METHOD("get_time_scale"), &GLoader::get_time_scale);
+    ClassDB::bind_method(D_METHOD("set_time_scale", "time_scale"), &GLoader::set_time_scale);
+    ClassDB::bind_method(D_METHOD("advance", "time"), &GLoader::advance);
+    ClassDB::bind_method(D_METHOD("set_color", "color"), &GLoader::set_color);
+    ClassDB::bind_method(D_METHOD("get_color"), &GLoader::get_color);
+    ClassDB::bind_method(D_METHOD("set_show_error_sign", "show_error_sign"), &GLoader::set_show_error_sign);
+    ClassDB::bind_method(D_METHOD("is_show_error_sign"), &GLoader::is_show_error_sign);
+    ClassDB::bind_method(D_METHOD("set_fill_method", "fill_method"), &GLoader::set_fill_method);
+    ClassDB::bind_method(D_METHOD("get_fill_method"), &GLoader::get_fill_method);
+    ClassDB::bind_method(D_METHOD("set_fill_origin", "fill_origin"), &GLoader::set_fill_origin);
+    ClassDB::bind_method(D_METHOD("get_fill_origin"), &GLoader::get_fill_origin);
+    ClassDB::bind_method(D_METHOD("set_fill_clockwise", "fill_clockwise"), &GLoader::set_fill_clockwise);
+    ClassDB::bind_method(D_METHOD("is_fill_clockwise"), &GLoader::is_fill_clockwise);
+    ClassDB::bind_method(D_METHOD("set_fill_amount", "fill_amount"), &GLoader::set_fill_amount);
+    ClassDB::bind_method(D_METHOD("get_fill_amount"), &GLoader::get_fill_amount);
 
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "url"), "set_url", "get_url");
     ADD_PROPERTY(PropertyInfo(Variant::INT, "align"), "set_align", "get_align");
@@ -32,6 +52,15 @@ void GLoader::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "shrink_only"), "set_shrink_only", "is_shrink_only");
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "auto_size"), "set_auto_size", "is_auto_size");
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "use_resize"), "set_use_resize", "is_use_resize");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "playing"), "set_playing", "is_playing");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "frame"), "set_frame", "get_frame");
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "time_scale"), "set_time_scale", "get_time_scale");
+    ADD_PROPERTY(PropertyInfo(Variant::COLOR, "color"), "set_color", "get_color");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "show_error_sign"), "set_show_error_sign", "is_show_error_sign");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "fill_method"), "set_fill_method", "get_fill_method");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "fill_origin"), "set_fill_origin", "get_fill_origin");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "fill_clockwise"), "set_fill_clockwise", "is_fill_clockwise");
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "fill_amount"), "set_fill_amount", "get_fill_amount");
 }
 
 void GLoader::_draw() {
@@ -276,3 +305,47 @@ void GLoader::clear_content() {
     }
     queue_redraw();
 }
+
+void GLoader::set_playing(bool p_playing) {
+    playing = p_playing;
+    GMovieClip *mc = Object::cast_to<GMovieClip>(content_node);
+    if (mc != nullptr) mc->set_playing(p_playing);
+}
+bool GLoader::is_playing() const { return playing; }
+
+int32_t GLoader::get_frame() const {
+    GMovieClip *mc = Object::cast_to<GMovieClip>(content_node);
+    return mc != nullptr ? mc->get_frame() : frame;
+}
+void GLoader::set_frame(int32_t p_frame) {
+    frame = p_frame;
+    GMovieClip *mc = Object::cast_to<GMovieClip>(content_node);
+    if (mc != nullptr) mc->set_frame(p_frame);
+}
+
+float GLoader::get_time_scale() const { return time_scale; }
+void GLoader::set_time_scale(float p_time_scale) {
+    time_scale = p_time_scale;
+    GMovieClip *mc = Object::cast_to<GMovieClip>(content_node);
+    if (mc != nullptr) mc->set_time_scale(p_time_scale);
+}
+
+void GLoader::advance(float p_time) {
+    GMovieClip *mc = Object::cast_to<GMovieClip>(content_node);
+    if (mc != nullptr) mc->advance(p_time);
+}
+
+void GLoader::set_color(const Color &p_color) { color = p_color; queue_redraw(); }
+Color GLoader::get_color() const { return color; }
+
+void GLoader::set_show_error_sign(bool p_show_error_sign) { show_error_sign = p_show_error_sign; }
+bool GLoader::is_show_error_sign() const { return show_error_sign; }
+
+void GLoader::set_fill_method(int32_t p_fill_method) { fill_method = p_fill_method; queue_redraw(); }
+int32_t GLoader::get_fill_method() const { return fill_method; }
+void GLoader::set_fill_origin(int32_t p_fill_origin) { fill_origin = p_fill_origin; queue_redraw(); }
+int32_t GLoader::get_fill_origin() const { return fill_origin; }
+void GLoader::set_fill_clockwise(bool p_fill_clockwise) { fill_clockwise = p_fill_clockwise; queue_redraw(); }
+bool GLoader::is_fill_clockwise() const { return fill_clockwise; }
+void GLoader::set_fill_amount(float p_fill_amount) { fill_amount = p_fill_amount; queue_redraw(); }
+float GLoader::get_fill_amount() const { return fill_amount; }

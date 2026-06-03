@@ -35,6 +35,10 @@ public:
     void set_tween_breakpoint(int32_t p_id, double p_breakpoint);
     void set_tween_time_scale(int32_t p_id, double p_time_scale);
     void set_tween_snapping(int32_t p_id, bool p_snapping);
+    void set_tween_target(int32_t p_id, Object *p_target);
+    void set_tween_user_data(int32_t p_id, const Variant &p_data);
+    void set_tween_paused(int32_t p_id, bool p_paused);
+    void seek(int32_t p_id, double p_time);
     void set_tween_on_start(int32_t p_id, const Callable &p_callback);
     void set_tween_on_update(int32_t p_id, const Callable &p_callback);
     void set_tween_on_complete(int32_t p_id, const Callable &p_callback);
@@ -156,8 +160,10 @@ private:
         Callable on_complete;
         Callable legacy_update_callback;
         Callable legacy_complete_callback;
+        Variant user_data;
         bool started = false;
         bool killed = false;
+        bool paused = false;
         int32_t _ended = 0;
     };
 

@@ -1,6 +1,7 @@
 #include "g_object.h"
 
 #include <godot_cpp/classes/input_event_mouse_button.hpp>
+#include <godot_cpp/classes/scene_tree.hpp>
 #include <godot_cpp/core/class_db.hpp>
 
 using namespace godot;
@@ -10,11 +11,41 @@ void GObject::_bind_methods() {
     ClassDB::bind_method(D_METHOD("is_touchable"), &GObject::is_touchable);
     ClassDB::bind_method(D_METHOD("set_package_item_id", "id"), &GObject::set_package_item_id);
     ClassDB::bind_method(D_METHOD("get_package_item_id"), &GObject::get_package_item_id);
+    ClassDB::bind_method(D_METHOD("set_id", "id"), &GObject::set_id);
+    ClassDB::bind_method(D_METHOD("get_id"), &GObject::get_id);
+    ClassDB::bind_method(D_METHOD("set_data", "data"), &GObject::set_data);
+    ClassDB::bind_method(D_METHOD("get_data"), &GObject::get_data);
+    ClassDB::bind_method(D_METHOD("set_enabled", "enabled"), &GObject::set_enabled);
+    ClassDB::bind_method(D_METHOD("is_enabled"), &GObject::is_enabled);
+    ClassDB::bind_method(D_METHOD("set_grayed", "grayed"), &GObject::set_grayed);
+    ClassDB::bind_method(D_METHOD("is_grayed"), &GObject::is_grayed);
+    ClassDB::bind_method(D_METHOD("set_tooltips", "tooltips"), &GObject::set_tooltips);
+    ClassDB::bind_method(D_METHOD("get_tooltips"), &GObject::get_tooltips);
+    ClassDB::bind_method(D_METHOD("local_to_global_pos", "local"), &GObject::local_to_global_pos);
+    ClassDB::bind_method(D_METHOD("global_to_local_pos", "global"), &GObject::global_to_local_pos);
+    ClassDB::bind_method(D_METHOD("root_to_local_pos", "root"), &GObject::root_to_local_pos);
+    ClassDB::bind_method(D_METHOD("local_to_root_pos", "local"), &GObject::local_to_root_pos);
+    ClassDB::bind_method(D_METHOD("add_relation", "target", "relation_type", "percent"), &GObject::add_relation, DEFVAL(false));
+    ClassDB::bind_method(D_METHOD("remove_relation", "target", "relation_type"), &GObject::remove_relation);
 
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "touchable"), "set_touchable", "is_touchable");
     ADD_PROPERTY(PropertyInfo(Variant::STRING_NAME, "package_item_id"), "set_package_item_id", "get_package_item_id");
+    ADD_PROPERTY(PropertyInfo(Variant::STRING, "id"), "set_id", "get_id");
+    ADD_PROPERTY(PropertyInfo(Variant::NIL, "data"), "set_data", "get_data");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "enabled"), "set_enabled", "is_enabled");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "grayed"), "set_grayed", "is_grayed");
+    ADD_PROPERTY(PropertyInfo(Variant::STRING, "tooltips"), "set_tooltips", "get_tooltips");
 
     ADD_SIGNAL(MethodInfo("fgui_click"));
+    ADD_SIGNAL(MethodInfo("fgui_right_click"));
+    ADD_SIGNAL(MethodInfo("fgui_roll_over"));
+    ADD_SIGNAL(MethodInfo("fgui_roll_out"));
+    ADD_SIGNAL(MethodInfo("fgui_key_down"));
+    ADD_SIGNAL(MethodInfo("fgui_focus_in"));
+    ADD_SIGNAL(MethodInfo("fgui_focus_out"));
+    ADD_SIGNAL(MethodInfo("fgui_drag_start"));
+    ADD_SIGNAL(MethodInfo("fgui_drag_move"));
+    ADD_SIGNAL(MethodInfo("fgui_drag_end"));
 }
 
 void GObject::_gui_input(const Ref<InputEvent> &p_event) {
@@ -398,4 +429,56 @@ void GObject::add_relation_def(fgui::RelationType p_type, bool p_percent) {
     relation.type = p_type;
     relation.percent = p_percent;
     parent_relations.push_back(relation);
+}
+
+void GObject::set_id(const String &p_id) { package_item_id = StringName(p_id); }
+String GObject::get_id() const { return package_item_id; }
+
+void GObject::set_data(const Variant &p_data) { user_data = p_data; }
+Variant GObject::get_data() const { return user_data; }
+
+void GObject::set_enabled(bool p_enabled) {
+    set_grayed(!p_enabled);
+    set_touchable(p_enabled);
+}
+bool GObject::is_enabled() const { return !is_grayed() && is_touchable(); }
+
+void GObject::set_grayed(bool p_grayed) { grayed = p_grayed; }
+bool GObject::is_grayed() const { return grayed; }
+
+void GObject::set_tooltips(const String &p_tooltips) { tooltips = p_tooltips; }
+String GObject::get_tooltips() const { return tooltips; }
+
+Vector2 GObject::local_to_global_pos(const Vector2 &p_local) const {
+    if (!is_inside_tree()) return p_local + get_position();
+    return get_screen_transform().xform(p_local);
+}
+Vector2 GObject::global_to_local_pos(const Vector2 &p_global) const {
+    if (!is_inside_tree()) return p_global - get_position();
+    return get_screen_transform().affine_inverse().xform(p_global);
+}
+Vector2 GObject::root_to_local_pos(const Vector2 &p_root) const {
+    if (!is_inside_tree() || get_tree() == nullptr) return p_root;
+    return get_screen_transform().affine_inverse().xform(p_root);
+}
+Vector2 GObject::local_to_root_pos(const Vector2 &p_local) const {
+    if (!is_inside_tree() || get_tree() == nullptr) return p_local;
+    return get_screen_transform().xform(p_local);
+}
+
+void GObject::add_relation(GObject *p_target, int32_t p_relation_type, bool p_percent) {
+    if (p_target == nullptr) return;
+    RelationDef def;
+    def.type = static_cast<fgui::RelationType>(p_relation_type);
+    def.percent = p_percent;
+    parent_relations.push_back(def);
+}
+void GObject::remove_relation(GObject *p_target, int32_t p_relation_type) {
+    (void)p_target;
+    fgui::RelationType type = static_cast<fgui::RelationType>(p_relation_type);
+    for (int32_t i = parent_relations.size() - 1; i >= 0; i--) {
+        if (parent_relations[i].type == type) {
+            parent_relations.remove_at(i);
+        }
+    }
 }

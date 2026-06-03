@@ -231,6 +231,16 @@ void GTextField::_bind_methods() {
     ClassDB::bind_method(D_METHOD("has_rich_text_label"), &GTextField::has_rich_text_label);
     ClassDB::bind_method(D_METHOD("get_rich_text_owner_instance_id"), &GTextField::get_rich_text_owner_instance_id);
     ClassDB::bind_method(D_METHOD("_handle_rich_text_meta_clicked", "meta"), &GTextField::_handle_rich_text_meta_clicked);
+    ClassDB::bind_method(D_METHOD("set_align", "align"), &GTextField::set_align);
+    ClassDB::bind_method(D_METHOD("get_align"), &GTextField::get_align);
+    ClassDB::bind_method(D_METHOD("set_vertical_align", "vertical_align"), &GTextField::set_vertical_align);
+    ClassDB::bind_method(D_METHOD("get_vertical_align"), &GTextField::get_vertical_align);
+    ClassDB::bind_method(D_METHOD("set_single_line", "single_line"), &GTextField::set_single_line);
+    ClassDB::bind_method(D_METHOD("is_single_line"), &GTextField::is_single_line);
+    ClassDB::bind_method(D_METHOD("set_auto_size", "auto_size"), &GTextField::set_auto_size);
+    ClassDB::bind_method(D_METHOD("get_auto_size"), &GTextField::get_auto_size);
+    ClassDB::bind_method(D_METHOD("get_text_width"), &GTextField::get_text_width);
+    ClassDB::bind_method(D_METHOD("get_text_height"), &GTextField::get_text_height);
 
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "text"), "set_text", "get_text");
     ADD_PROPERTY(PropertyInfo(Variant::COLOR, "text_color"), "set_text_color", "get_text_color");
@@ -238,6 +248,10 @@ void GTextField::_bind_methods() {
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "font_name"), "set_font_name", "get_font_name");
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "ubb_enabled"), "set_ubb_enabled", "is_ubb_enabled");
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "rich_text_enabled"), "set_rich_text_enabled", "is_rich_text_enabled");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "align"), "set_align", "get_align");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "vertical_align"), "set_vertical_align", "get_vertical_align");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "single_line"), "set_single_line", "is_single_line");
+    ADD_PROPERTY(PropertyInfo(Variant::INT, "auto_size"), "set_auto_size", "get_auto_size");
     ADD_SIGNAL(MethodInfo("fgui_link_click", PropertyInfo(Variant::STRING, "href")));
 }
 
@@ -564,4 +578,45 @@ void GTextField::clear_rich_text_label() {
 void GTextField::_handle_rich_text_meta_clicked(const Variant &p_meta) {
     const String href = p_meta.get_type() == Variant::STRING ? static_cast<String>(p_meta) : p_meta.stringify();
     emit_signal("fgui_link_click", href);
+}
+
+void GTextField::set_align(int32_t p_align) {
+    horizontal_alignment = p_align == 1 ? HORIZONTAL_ALIGNMENT_CENTER : (p_align == 2 ? HORIZONTAL_ALIGNMENT_RIGHT : HORIZONTAL_ALIGNMENT_LEFT);
+    update_rich_text_label();
+    queue_redraw();
+}
+
+int32_t GTextField::get_align() const {
+    if (horizontal_alignment == HORIZONTAL_ALIGNMENT_CENTER) return 1;
+    if (horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT) return 2;
+    return 0;
+}
+
+void GTextField::set_vertical_align(int32_t p_vertical_align) {
+    vertical_alignment = p_vertical_align;
+    queue_redraw();
+}
+
+int32_t GTextField::get_vertical_align() const { return vertical_alignment; }
+
+void GTextField::set_single_line(bool p_single_line) { single_line = p_single_line; }
+bool GTextField::is_single_line() const { return single_line; }
+
+void GTextField::set_auto_size(int32_t p_auto_size) { auto_size = p_auto_size; }
+int32_t GTextField::get_auto_size() const { return auto_size; }
+
+float GTextField::get_text_width() const {
+    Ref<Font> font = get_theme_default_font();
+    if (font.is_valid()) {
+        return font->get_string_size(display_text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size > 0 ? font_size : get_theme_default_font_size()).x;
+    }
+    return 0.0f;
+}
+
+float GTextField::get_text_height() const {
+    Ref<Font> font = get_theme_default_font();
+    if (font.is_valid()) {
+        return font->get_height(font_size > 0 ? font_size : get_theme_default_font_size());
+    }
+    return 0.0f;
 }

@@ -13,12 +13,14 @@
 #include "g_slider.h"
 #include "g_text_field.h"
 #include "g_text_input.h"
+#include "g_tween.h"
 #include "ui_package.h"
 
 #include <godot_cpp/classes/control.hpp>
 #include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/core/object.hpp>
 #include <godot_cpp/core/memory.hpp>
+#include <godot_cpp/variant/packed_string_array.hpp>
 
 using namespace godot;
 
@@ -59,6 +61,22 @@ void GComponent::_bind_methods() {
     ClassDB::bind_method(D_METHOD("add_transition_shake", "name", "target", "amplitude", "duration", "delay"), &GComponent::add_transition_shake, DEFVAL(0.0));
     ClassDB::bind_method(D_METHOD("add_transition_color_filter", "name", "target", "end", "duration", "delay"), &GComponent::add_transition_color_filter, DEFVAL(0.0));
     ClassDB::bind_method(D_METHOD("add_transition_sound", "name", "target", "sound_url", "volume", "delay"), &GComponent::add_transition_sound, DEFVAL(1.0), DEFVAL(0.0));
+    ClassDB::bind_method(D_METHOD("get_child_by_name", "name"), &GComponent::get_child_by_name);
+    ClassDB::bind_method(D_METHOD("get_child_by_path", "path"), &GComponent::get_child_by_path);
+    ClassDB::bind_method(D_METHOD("get_visible_child", "name"), &GComponent::get_visible_child);
+    ClassDB::bind_method(D_METHOD("swap_children", "index1", "index2"), &GComponent::swap_children);
+    ClassDB::bind_method(D_METHOD("swap_children_at", "index1", "index2"), &GComponent::swap_children_at);
+    ClassDB::bind_method(D_METHOD("set_child_index_before", "child", "before_index"), &GComponent::set_child_index_before);
+    ClassDB::bind_method(D_METHOD("get_controller_name", "controller_index"), &GComponent::get_controller_name);
+    ClassDB::bind_method(D_METHOD("get_controller_page_id", "controller_index", "page_index"), &GComponent::get_controller_page_id);
+    ClassDB::bind_method(D_METHOD("get_controller_page_name", "controller_index", "page_index"), &GComponent::get_controller_page_name);
+    ClassDB::bind_method(D_METHOD("has_controller_page", "controller_index", "page_id"), &GComponent::has_controller_page);
+    ClassDB::bind_method(D_METHOD("stop_transition", "name", "set_to_complete"), &GComponent::stop_transition, DEFVAL(true));
+    ClassDB::bind_method(D_METHOD("stop_transition_at", "index", "set_to_complete"), &GComponent::stop_transition_at, DEFVAL(true));
+    ClassDB::bind_method(D_METHOD("set_transition_paused", "paused"), &GComponent::set_transition_paused);
+    ClassDB::bind_method(D_METHOD("is_transition_playing"), &GComponent::is_transition_playing);
+    ClassDB::bind_method(D_METHOD("get_transition_time_scale"), &GComponent::get_transition_time_scale);
+    ClassDB::bind_method(D_METHOD("set_transition_time_scale", "time_scale"), &GComponent::set_transition_time_scale);
 
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "package_name"), "set_package_name", "get_package_name");
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "component_name"), "set_component_name", "get_component_name");
@@ -565,4 +583,142 @@ void GComponent::request_construct_from_resource() {
         return;
     }
     construct_from_resource();
+}
+
+GObject *GComponent::get_child_by_name(const String &p_name) const {
+    for (int32_t i = 0; i < get_child_count(); i++) {
+        Node *child = get_child(i);
+        if (child->get_name() == p_name) {
+            GObject *obj = Object::cast_to<GObject>(child);
+            if (obj != nullptr) return obj;
+        }
+    }
+    return nullptr;
+}
+
+GObject *GComponent::get_child_by_path(const String &p_path) const {
+    PackedStringArray parts = p_path.split("/");
+    const GComponent *current = this;
+    for (int32_t i = 0; i < parts.size(); i++) {
+        if (parts[i].is_empty()) continue;
+        GObject *found = nullptr;
+        for (int32_t j = 0; j < current->get_child_count(); j++) {
+            Node *child = current->get_child(j);
+            if (child->get_name() == parts[i]) {
+                GObject *obj = Object::cast_to<GObject>(child);
+                if (obj != nullptr) {
+                    found = obj;
+                    break;
+                }
+            }
+        }
+        if (found == nullptr) return nullptr;
+        GComponent *comp = Object::cast_to<GComponent>(found);
+        if (comp != nullptr) { current = comp; continue; }
+        return (i == parts.size() - 1) ? found : nullptr;
+    }
+    return const_cast<GComponent *>(current);
+}
+
+GObject *GComponent::get_visible_child(const String &p_name) const {
+    GObject *child = get_child_by_name(p_name);
+    return (child != nullptr && child->is_visible()) ? child : nullptr;
+}
+
+void GComponent::swap_children(int32_t p_index1, int32_t p_index2) { swap_children_at(p_index1, p_index2); }
+void GComponent::swap_children_at(int32_t p_index1, int32_t p_index2) {
+    if (p_index1 < 0 || p_index1 >= get_child_count()) return;
+    if (p_index2 < 0 || p_index2 >= get_child_count()) return;
+    if (p_index1 == p_index2) return;
+    Node *child1 = get_child(p_index1);
+    Node *child2 = get_child(p_index2);
+    if (child1 == nullptr || child2 == nullptr) return;
+    move_child(child1, p_index2);
+}
+
+void GComponent::set_child_index_before(GObject *p_child, int32_t p_before_index) {
+    if (p_child == nullptr || p_child->get_parent() != this) return;
+    int32_t current_index = p_child->get_index();
+    if (current_index < 0) return;
+    if (p_before_index > current_index) p_before_index--;
+    move_child(p_child, CLAMP(p_before_index, 0, get_child_count() - 1));
+}
+
+String GComponent::get_controller_name(int32_t p_controller_index) const {
+    if (p_controller_index < 0 || p_controller_index >= controllers.size()) return String();
+    return controllers[p_controller_index].name;
+}
+
+String GComponent::get_controller_page_id(int32_t p_controller_index, int32_t p_page_index) const {
+    if (p_controller_index < 0 || p_controller_index >= controllers.size()) return String();
+    const ControllerData &c = controllers[p_controller_index];
+    if (p_page_index < 0 || p_page_index >= c.page_ids.size()) return String();
+    return c.page_ids[p_page_index];
+}
+
+String GComponent::get_controller_page_name(int32_t p_controller_index, int32_t p_page_index) const {
+    if (p_controller_index < 0 || p_controller_index >= controllers.size()) return String();
+    const ControllerData &c = controllers[p_controller_index];
+    if (p_page_index < 0 || p_page_index >= c.page_names.size()) return String();
+    return c.page_names[p_page_index];
+}
+
+bool GComponent::has_controller_page(int32_t p_controller_index, const String &p_page_id) const {
+    if (p_controller_index < 0 || p_controller_index >= controllers.size()) return false;
+    const ControllerData &c = controllers[p_controller_index];
+    for (int32_t i = 0; i < c.page_ids.size(); i++) {
+        if (c.page_ids[i] == p_page_id) return true;
+    }
+    return false;
+}
+
+void GComponent::stop_transition(const String &p_name, bool p_set_to_complete) {
+    stop_transition_at(find_transition_index(p_name), p_set_to_complete);
+}
+
+void GComponent::stop_transition_at(int32_t p_index, bool p_set_to_complete) {
+    if (p_index < 0 || p_index >= transitions.size()) return;
+    TransitionData &transition = transitions.write[p_index];
+    for (int32_t i = 0; i < transition.items.size(); i++) {
+        stop_transition_item(transition.items.write[i], p_set_to_complete);
+    }
+    transition.paused = false;
+}
+
+void GComponent::set_transition_paused(bool p_paused) {
+    for (int32_t i = 0; i < transitions.size(); i++) {
+        transitions.write[i].paused = p_paused;
+        for (int32_t j = 0; j < transitions[i].items.size(); j++) {
+            TransitionItem &item = transitions.write[i].items.write[j];
+            if (item.active_tween_id > 0 && transition_tween != nullptr) {
+                transition_tween->set_tween_paused(item.active_tween_id, p_paused);
+            }
+        }
+    }
+}
+
+bool GComponent::is_transition_playing() const {
+    for (int32_t i = 0; i < transitions.size(); i++) {
+        if (transitions[i].active_play_index >= 0 && !transitions[i].paused) return true;
+    }
+    return false;
+}
+
+float GComponent::get_transition_time_scale() const {
+    for (int32_t i = 0; i < transitions.size(); i++) {
+        if (transitions[i].active_play_index >= 0) return transitions[i].time_scale;
+    }
+    return 1.0f;
+}
+
+void GComponent::set_transition_time_scale(float p_time_scale) {
+    for (int32_t i = 0; i < transitions.size(); i++) {
+        transitions.write[i].time_scale = p_time_scale;
+        for (int32_t j = 0; j < transitions[i].items.size(); j++) {
+            TransitionItem &item = transitions.write[i].items.write[j];
+            if (item.active_tween_id > 0 && transition_tween != nullptr) {
+                transition_tween->set_tween_time_scale(item.active_tween_id, p_time_scale);
+            }
+        }
+    }
 }

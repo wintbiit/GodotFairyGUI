@@ -36,6 +36,28 @@ public:
     bool is_use_resize() const;
     Rect2 get_content_rect() const;
 
+    void set_playing(bool p_playing);
+    bool is_playing() const;
+    int32_t get_frame() const;
+    void set_frame(int32_t p_frame);
+    float get_time_scale() const;
+    void set_time_scale(float p_time_scale);
+    void advance(float p_time);
+
+    void set_color(const Color &p_color);
+    Color get_color() const;
+    void set_show_error_sign(bool p_show_error_sign);
+    bool is_show_error_sign() const;
+
+    void set_fill_method(int32_t p_fill_method);
+    int32_t get_fill_method() const;
+    void set_fill_origin(int32_t p_fill_origin);
+    int32_t get_fill_origin() const;
+    void set_fill_clockwise(bool p_fill_clockwise);
+    bool is_fill_clockwise() const;
+    void set_fill_amount(float p_fill_amount);
+    float get_fill_amount() const;
+
 private:
     String url;
     Ref<Texture2D> texture;
@@ -48,6 +70,17 @@ private:
     bool use_resize = false;
     Rect2 content_rect;
     bool updating_layout = false;
+
+    bool playing = false;
+    int32_t frame = -1;
+    float time_scale = 1.0f;
+    Color color = Color(1, 1, 1, 1);
+    bool show_error_sign = true;
+
+    int32_t fill_method = 0;
+    int32_t fill_origin = 0;
+    bool fill_clockwise = true;
+    float fill_amount = 1.0f;
 
     void load_content();
     void update_layout();

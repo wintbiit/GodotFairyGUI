@@ -24,14 +24,26 @@ public:
     String get_component_name() const;
     bool construct_from_resource();
     bool construct_from_package(const String &p_package_id, const fgui::PackageItem &p_item);
+
+    GObject *get_child_by_name(const String &p_name) const;
+    GObject *get_child_by_path(const String &p_path) const;
+    GObject *get_visible_child(const String &p_name) const;
+    void swap_children(int32_t p_index1, int32_t p_index2);
+    void swap_children_at(int32_t p_index1, int32_t p_index2);
+    void set_child_index_before(GObject *p_child, int32_t p_before_index);
+
     int32_t count_descendants_by_class(const String &p_class_name) const;
     int32_t get_controller_count() const;
+    String get_controller_name(int32_t p_controller_index) const;
     int32_t get_controller_page_count(int32_t p_controller_index) const;
+    String get_controller_page_id(int32_t p_controller_index, int32_t p_page_index) const;
+    String get_controller_page_name(int32_t p_controller_index, int32_t p_page_index) const;
     String get_controller_selected_page_id(int32_t p_controller_index) const;
     bool set_controller_selected_index(int32_t p_controller_index, int32_t p_page_index);
     bool set_controller_selected_page_id(int32_t p_controller_index, const String &p_page_id);
     bool go_back_controller(int32_t p_controller_index);
     int32_t get_controller_previous_index(int32_t p_controller_index) const;
+    bool has_controller_page(int32_t p_controller_index, const String &p_page_id) const;
     int32_t count_hidden_descendants() const;
     int32_t count_display_gear_descendants() const;
     int32_t count_common_gear_descendants() const;
@@ -41,6 +53,12 @@ public:
     int32_t get_transition_item_count(int32_t p_index) const;
     bool play_transition(const String &p_name);
     bool play_transition_at(int32_t p_index);
+    void stop_transition(const String &p_name, bool p_set_to_complete = true);
+    void stop_transition_at(int32_t p_index, bool p_set_to_complete = true);
+    void set_transition_paused(bool p_paused);
+    bool is_transition_playing() const;
+    float get_transition_time_scale() const;
+    void set_transition_time_scale(float p_time_scale);
     void advance_transitions(double p_delta);
     void add_transition_xy(const String &p_name, Object *p_target, const Vector2 &p_end, double p_duration, double p_delay = 0.0);
     void add_transition_size(const String &p_name, Object *p_target, const Vector2 &p_end, double p_duration, double p_delay = 0.0);
@@ -133,6 +151,9 @@ private:
         int32_t auto_play_times = 1;
         float auto_play_delay = 0.0f;
         float total_duration = 0.0f;
+        float time_scale = 1.0f;
+        bool paused = false;
+        int32_t active_play_index = -1;
         Vector<TransitionItem> items;
     };
 

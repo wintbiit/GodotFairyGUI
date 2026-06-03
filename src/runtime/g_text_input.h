@@ -37,6 +37,14 @@ public:
     bool is_display_as_password() const;
     void set_multiline(bool p_multiline);
     bool is_multiline() const;
+    void set_hide_input(bool p_hide_input);
+    bool is_hide_input() const;
+    void set_keyboard_input(bool p_keyboard_input);
+    bool is_keyboard_input() const;
+    void set_disable_ime(bool p_disable_ime);
+    bool is_disable_ime() const;
+    void set_mouse_wheel_enabled(bool p_mouse_wheel_enabled);
+    bool is_mouse_wheel_enabled() const;
     void set_caret_position(int32_t p_position);
     int32_t get_caret_position() const;
     void set_selection(int32_t p_start, int32_t p_length);
@@ -50,6 +58,10 @@ private:
     bool editable = true;
     bool multiline = false;
     bool display_as_password = false;
+    bool hide_input = false;
+    bool keyboard_input = true;
+    bool disable_ime = false;
+    bool text_input_mouse_wheel = false;
     String prompt_text;
     String restrict;
     int32_t max_length = 0;

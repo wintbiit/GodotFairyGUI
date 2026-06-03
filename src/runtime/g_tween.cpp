@@ -56,6 +56,10 @@ void GTween::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_tween_breakpoint", "id", "breakpoint"), &GTween::set_tween_breakpoint);
     ClassDB::bind_method(D_METHOD("set_tween_time_scale", "id", "time_scale"), &GTween::set_tween_time_scale);
     ClassDB::bind_method(D_METHOD("set_tween_snapping", "id", "snapping"), &GTween::set_tween_snapping);
+    ClassDB::bind_method(D_METHOD("set_tween_paused", "id", "paused"), &GTween::set_tween_paused);
+    ClassDB::bind_method(D_METHOD("set_tween_target", "id", "target"), &GTween::set_tween_target);
+    ClassDB::bind_method(D_METHOD("set_tween_user_data", "id", "data"), &GTween::set_tween_user_data);
+    ClassDB::bind_method(D_METHOD("seek", "id", "time"), &GTween::seek);
     ClassDB::bind_method(D_METHOD("set_tween_on_start", "id", "callback"), &GTween::set_tween_on_start);
     ClassDB::bind_method(D_METHOD("set_tween_on_update", "id", "callback"), &GTween::set_tween_on_update);
     ClassDB::bind_method(D_METHOD("set_tween_on_complete", "id", "callback"), &GTween::set_tween_on_complete);
@@ -253,11 +257,46 @@ void GTween::set_tween_time_scale(int32_t p_id, double p_time_scale) {
     }
 }
 
+void GTween::set_tween_paused(int32_t p_id, bool p_paused) {
+    Tween *tween = find_tween(p_id);
+    if (tween != nullptr) {
+        tween->paused = p_paused;
+    }
+}
+
 void GTween::set_tween_snapping(int32_t p_id, bool p_snapping) {
     Tween *tween = find_tween(p_id);
     if (tween != nullptr) {
         tween->snapping = p_snapping;
     }
+}
+
+void GTween::set_tween_target(int32_t p_id, Object *p_target) {
+    Tween *tween = find_tween(p_id);
+    if (tween != nullptr && p_target != nullptr) {
+        tween->target_id = p_target->get_instance_id();
+    }
+}
+
+void GTween::set_tween_user_data(int32_t p_id, const Variant &p_data) {
+    Tween *tween = find_tween(p_id);
+    if (tween != nullptr) {
+        tween->user_data = p_data;
+    }
+}
+
+void GTween::seek(int32_t p_id, double p_time) {
+    Tween *tween = find_tween(p_id);
+    if (tween == nullptr || tween->killed) return;
+    tween->elapsed = MAX(0.0, p_time);
+    if (tween->elapsed < tween->delay) return;
+    if (!tween->started) tween->started = true;
+    const double active_time = tween->elapsed - tween->delay;
+    double ratio = tween->duration <= 0.0 ? 1.0 : CLAMP(active_time / tween->duration, 0.0, 1.0);
+    if (tween->kind != TWEEN_SHAKE) {
+        ratio = ease_ratio(tween->ease, ratio, tween->ease_amplitude, tween->ease_period);
+    }
+    apply_tween(*tween, ratio);
 }
 
 void GTween::set_tween_on_start(int32_t p_id, const Callable &p_callback) {
@@ -366,6 +405,7 @@ void GTween::advance(double p_delta) {
         if (tween.killed || tween._ended != 0) {
             continue;
         }
+        if (tween.paused) continue;
 
         double dt = p_delta * tween.time_scale;
         tween.elapsed += dt;

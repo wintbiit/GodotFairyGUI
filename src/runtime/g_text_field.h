@@ -28,6 +28,19 @@ public:
     virtual void set_font_name(const String &p_font_name);
     String get_font_name() const;
 
+    void set_align(int32_t p_align);
+    int32_t get_align() const;
+    void set_vertical_align(int32_t p_vertical_align);
+    int32_t get_vertical_align() const;
+    void set_single_line(bool p_single_line);
+    bool is_single_line() const;
+
+    void set_auto_size(int32_t p_auto_size);
+    int32_t get_auto_size() const;
+
+    float get_text_width() const;
+    float get_text_height() const;
+
     void set_ubb_enabled(bool p_enabled);
     bool is_ubb_enabled() const;
     int32_t get_ubb_image_count() const;
@@ -45,6 +58,8 @@ protected:
     int32_t font_size = 0;
     Color text_color = Color(1, 1, 1, 1);
     HorizontalAlignment horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT;
+    int32_t vertical_alignment = 0;
+    int32_t auto_size = 0;
     bool single_line = false;
     bool ubb_enabled = false;
     bool rich_text_enabled = false;
