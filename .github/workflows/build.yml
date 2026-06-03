@@ -124,7 +124,7 @@ jobs:
 
       - name: Build (macOS)
         if: runner.os == 'macOS'
-        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui --parallel $(nproc 2>/dev/null || echo $(sysctl -n hw.logicalcpu))
+        run: cmake --build build --config ${{ matrix.config }} --target godot_fairygui --parallel $(sysctl -n hw.logicalcpu)
 
       - name: Copy + rename (macOS)
         if: runner.os == 'macOS'

@@ -8,7 +8,7 @@
 #include <godot_cpp/variant/packed_byte_array.hpp>
 #include <godot_cpp/variant/string.hpp>
 
-#include "package/package_defs.h"
+#include "package_defs.h"
 
 namespace godot {
 
